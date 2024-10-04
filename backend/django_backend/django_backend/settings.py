@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -28,6 +29,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework.authtoken',
+    'django_db_logger',
 
     'app'
 ]
@@ -96,19 +98,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Redis configuration
-REDIS_HOST = os.getenv('REDIS_HOST')
-REDIS_PORT = '6379'
-
-# Celery configuration
-CELERY_BROKER_URL = os.getenv('BROKER_URL')
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-
-# Rest Framework configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=30),
+    'SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME_LATE_USER': timedelta(days=30),
 }
 
 # Internationalization
@@ -134,20 +138,67 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_media/')  # dev purposes
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# # Redis cache configuration
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-#         'LOCATION': 'my_cache_table',
-#     },
-#     'redis': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': 'redis://127.0.0.1:6379/',
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#         }
-#     }
-# }
+# Redis config
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
+REDIS_DB = os.getenv('REDIS_DB')
 
-# # Use the Redis cache as the default cache
-# CACHES['default'] = CACHES['redis']
+# Celery configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
+# Redis cache configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": [
+            f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",  # leader
+            # "redis://127.0.0.1:6378",  # read-replica 1
+            # "redis://127.0.0.1:6377",  # read-replica 2
+        ],
+    }
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(asctime)s %(message)s'
+        },
+    },
+    'handlers': {
+        'db_log': {
+            'level': 'DEBUG',
+            'class': 'django_db_logger.db_log_handler.DatabaseLogHandler'
+        },
+    },
+    'loggers': {
+        'db': {
+            'handlers': ['db_log'],
+            'level': 'DEBUG'
+        },
+        'django.request': {  # logging 500 errors to database
+            'handlers': ['db_log'],
+            'level': 'ERROR',
+            'propagate': False,
+        }
+    }
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Ive used mailtrap.io
+EMAIL_HOST = os.getenv('EMAIL_HOST')  # SMTP server, add to .env
+EMAIL_PORT = os.getenv('EMAIL_PORT')  # Common ports: 587 (TLS), 465 (SSL)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # your email
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # your email password
+EMAIL_USE_TLS = True  # Use TLS if your email server supports it
+# EMAIL_USE_SSL = True  # Use SSL if needed
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

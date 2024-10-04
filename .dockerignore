@@ -3,5 +3,7 @@
 __pycache__/
 
 .dockerignore
-.venv
+.venv/
 .env.example
+
+migrations/
