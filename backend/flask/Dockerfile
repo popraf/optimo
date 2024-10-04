@@ -1,4 +1,4 @@
-FROM python:2.7.18-slim-stretch
+FROM python:2.7.18-stretch
 
 WORKDIR /app_flask
 

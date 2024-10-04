@@ -42,6 +42,11 @@ external_book_status = {
 }
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+
 @app.route('/status/<int:book_id>', methods=['GET'])
 def status(book_id):
     book_info = external_book_status.get(book_id)
@@ -98,13 +103,16 @@ def reserve():
         )
         response.raise_for_status()
         # Log the successful reservation
-        app.logger.info('Reservation confirmed via Django: book_id %s, library %s' % (book_id, library))
+        app.logger.info('Reservation confirmed via Django: \
+                        book_id %s, library %s' % (book_id, library))
         # Return the Django response
-        return jsonify({'status': 'Reservation confirmed via Django', 'details': response.json()}), response.status_code
+        return jsonify({'status': 'Reservation confirmed via \
+                        Django', 'details': response.json()}), response.status_code
     except requests.exceptions.HTTPError as http_err:
         # Forward the error from the Django app
         app.logger.error('HTTP error occurred: %s' % http_err)
-        return jsonify({'status': 'Failed to reserve via Django', 'error': response.json()}), response.status_code
+        return jsonify({'status': 'Failed to reserve via \
+                        Django', 'error': response.json()}), response.status_code
     except requests.exceptions.RequestException as e:
         app.logger.error('Request exception: %s' % e)
         return jsonify({'status': 'Failed to reserve via Django', 'error': str(e)}), 500

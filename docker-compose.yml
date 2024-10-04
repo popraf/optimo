@@ -19,6 +19,11 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5    
 
   # Async tasks broker service
   optimo-redis:
@@ -49,10 +54,78 @@ services:
     volumes:
       - ./backend/django_backend:/app_django
     depends_on:
-      - optimo-mysql
+      optimo-mysql:
+        condition: service_healthy
     networks:
       - app-network
 
+  # Flask API
+  optimo-flask:
+    container_name: optimo-flask-container
+    env_file:
+      - .env
+    build:
+      context: ./backend/flask
+      dockerfile: Dockerfile
+    ports:
+      - '8005:8005'
+    environment:
+      BROKER_URL: ${BROKER_URL}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+    volumes:
+      - ./backend/flask:/app_flask
+    depends_on:
+      - optimo-mysql
+      - optimo-redis
+      - optimo-django-migrate
+    restart: on-failure
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "localhost:8005/health"]  # curl --fail http://0.0.0.0:8005/health || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 3
+  
+  # Django backend application
+  optimo-django:
+    container_name: optimo-django-container
+    env_file:
+      - .env
+    build:
+      context: ./backend/django_backend
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    environment:
+      BROKER_URL: ${BROKER_URL}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+    volumes:
+      - ./backend/django_backend:/app_django
+    depends_on:
+      optimo-django-migrate:
+        condition: service_completed_successfully
+      optimo-mysql:
+        condition: service_healthy
+      optimo-redis:
+        condition: service_started
+      optimo-flask:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
   # Async tasks worker
   celery:
     container_name: optimo-celery-container
@@ -98,63 +171,17 @@ services:
     volumes:
       - ./backend/django_backend:/app_django
     depends_on:
-      - optimo-django
-      - optimo-redis
+      optimo-django:
+        condition: service_healthy
+      optimo-redis:
+        condition: service_started
+      optimo-mysql:
+        condition: service_healthy
+      optimo-django-migrate:
+        condition: service_completed_successfully
     networks:
-      - app-network
-
-  # Flask API
-  optimo-flask:
-    container_name: optimo-flask-container
-    env_file:
-      - .env
-    build:
-      context: ./backend/flask
-      dockerfile: Dockerfile
-    ports:
-      - '8005:8005'
-    environment:
-      BROKER_URL: ${BROKER_URL}
-      DATABASE_HOST: ${DATABASE_HOST}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_NAME: ${DATABASE_NAME}
-    volumes:
-      - ./backend/flask:/app_flask
-    depends_on:
-      - optimo-mysql
-      - optimo-redis
-    restart: on-failure
-    networks:
-      - app-network
-
-  # Django backend application
-  optimo-django:
-    container_name: optimo-django-container
-    env_file:
-      - .env
-    build:
-      context: ./backend/django_backend
-      dockerfile: Dockerfile
-    ports:
-      - '8000:8000'
-    environment:
-      BROKER_URL: ${BROKER_URL}
-      DATABASE_HOST: ${DATABASE_HOST}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_NAME: ${DATABASE_NAME}
-    volumes:
-      - ./backend/django_backend:/app_django
-    depends_on:
-      - optimo-mysql
-      - optimo-redis
-      - optimo-flask
-      - optimo-django-migrate
-    restart: on-failure
-    networks:
-      - app-network
-
+    - app-network
+  
 networks:
   app-network:
     driver: bridge
