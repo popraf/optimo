@@ -1,0 +1,7 @@
+Dear {{ user.username }},
+
+This is a reminder that your reservation for '{{ reservation.book.title }}' book will expire on {{ reservation.reserved_until|date:"Y-m-d H:i:s" }}.
+Please return the book by the due date to avoid any late fees.
+
+Thank you,
+Library Team

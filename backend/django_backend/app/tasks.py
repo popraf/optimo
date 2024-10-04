@@ -4,6 +4,8 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
+from django.template.loader import render_to_string
+
 from .models import Reservation
 import logging
 
@@ -21,12 +23,11 @@ def send_notification(user_id, reservation_id):
         subject = 'Library Reservation Reminder'
         email_from = settings.DEFAULT_FROM_EMAIL
         recipient_list = [user.email]
-        message = (
-            f"Dear {user.username},\n\n"
-            f"This is a reminder that your reservation for '{reservation.book.title}' "
-            f"will expire on {reservation.reserved_until.strftime('%Y-%m-%d %H:%M:%S')}. "
-            "Please return the book by the due date to avoid any late fees.\n\n"
-        )
+        context = {
+            'user': user,
+            'reservation': reservation,
+        }
+        message = render_to_string('email/reminder_email.txt', context)
         send_mail(subject, message, email_from, recipient_list)
         logger.info('Email sent to user %s', user.username)
     except User.DoesNotExist:

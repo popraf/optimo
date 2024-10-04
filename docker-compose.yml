@@ -78,6 +78,31 @@ services:
     networks:
       - app-network
 
+  # Celery Beat Periodic Tasks
+  celery-beat:
+    container_name: optimo-celery-beat-container
+    env_file:
+      - .env
+    build:
+      context: ./backend/django_backend
+      dockerfile: Dockerfile
+    command: celery -A django_backend beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      DJANGO_SETTINGS_MODULE: django_backend.settings
+      CELERY_BROKER_URL: ${BROKER_URL}
+      CELERY_RESULT_BACKEND: ${BROKER_URL}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+    volumes:
+      - ./backend/django_backend:/app_django
+    depends_on:
+      - optimo-django
+      - optimo-redis
+    networks:
+      - app-network
+
   # Flask API
   optimo-flask:
     container_name: optimo-flask-container
