@@ -12,7 +12,7 @@ celery_app.autodiscover_tasks()
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
     'check-reservation-deadlines-every-day': {
-        'task': 'library_app.tasks.check_reservation_deadlines',
+        'task': 'app.tasks.check_reservation_deadlines',
         'schedule': 86400,  # once every 24 hours
     },
 }
