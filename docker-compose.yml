@@ -2,9 +2,11 @@ version: "3.8"
 
 services:
   # Database service
-  database:
-    container_name: optimo-mysql-database
+  optimo-mysql:
+    container_name: optimo-mysql-container
     image: mysql:9.0
+    env_file:
+      - .env
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -19,18 +21,43 @@ services:
       - app-network
 
   # Async tasks broker service
-  redis:
-    container_name: optimo-redis
+  optimo-redis:
+    container_name: optimo-redis-container
     image: redis:7.4.0
+    env_file:
+      - .env
     ports:
       - "6379:6379"
     restart: unless-stopped
     networks:
       - app-network
 
+  optimo-django-migrate:
+    container_name: optimo-django-migrate-container
+    build:
+      context: ./backend/django_backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: sh -c "python manage.py makemigrations && python manage.py migrate"
+    environment:
+      DJANGO_SETTINGS_MODULE: django_backend.settings
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+    volumes:
+      - ./backend/django_backend:/app_django
+    depends_on:
+      - optimo-mysql
+    networks:
+      - app-network
+
   # Async tasks worker
   celery:
-    container_name: optimo-celery
+    container_name: optimo-celery-container
+    env_file:
+      - .env
     build:
       context: ./backend/django_backend
       dockerfile: Dockerfile
@@ -44,21 +71,23 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
     volumes:
-      - ./backend/django_backend:/app
+      - ./backend/django_backend:/app_django
     depends_on:
-      - django
-      - redis
+      - optimo-django
+      - optimo-redis
     networks:
       - app-network
 
   # Flask API
-  flask:
-    container_name: optimo-flask-backend
+  optimo-flask:
+    container_name: optimo-flask-container
+    env_file:
+      - .env
     build:
       context: ./backend/flask
       dockerfile: Dockerfile
     ports:
-      - '5000:5000'
+      - '8005:8005'
     environment:
       BROKER_URL: ${BROKER_URL}
       DATABASE_HOST: ${DATABASE_HOST}
@@ -66,17 +95,19 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
     volumes:
-      - ./backend/flask:/app
+      - ./backend/flask:/app_flask
     depends_on:
-      - database
-      - redis
+      - optimo-mysql
+      - optimo-redis
     restart: on-failure
     networks:
       - app-network
 
   # Django backend application
-  django:
-    container_name: optimo-django-backend
+  optimo-django:
+    container_name: optimo-django-container
+    env_file:
+      - .env
     build:
       context: ./backend/django_backend
       dockerfile: Dockerfile
@@ -89,18 +120,19 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
     volumes:
-      - ./backend/django_backend:/app
+      - ./backend/django_backend:/app_django
     depends_on:
-      - database
-      - redis
-      - flask
+      - optimo-mysql
+      - optimo-redis
+      - optimo-flask
+      - optimo-django-migrate
     restart: on-failure
     networks:
       - app-network
 
-  networks:
-    app-network:
-      driver: bridge
+networks:
+  app-network:
+    driver: bridge
 
-  volumes:
-    db_data:
+volumes:
+  db_data:

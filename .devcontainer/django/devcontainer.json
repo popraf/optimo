@@ -1,10 +1,10 @@
 {
-    "name": "Optimo Dev Container",
+    "name": "Optimo Django Dev Container",
     "dockerComposeFile": [
-        "../docker-compose.yml"
+        "../../docker-compose.yml"
     ],
-    "service": "django",
-    "workspaceFolder": "/app",
+    "service": "optimo-django",
+    "workspaceFolder": "/app_django",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -18,7 +18,7 @@
             ],
             "settings": {
                 "python.pythonPath": "/usr/local/bin/python",
-                "python.analysis.extraPaths": ["/app"],
+                "python.analysis.extraPaths": ["/app_django"],
                 "terminal.integrated.defaultProfile.linux": "bash"
             } 
         }
