@@ -55,7 +55,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     retry_strategy = Retry(
         total=3,  # Total number of retry attempts
         status_forcelist=[429, 500, 502, 503, 504],  # HTTP status codes to retry on
-        method_whitelist=["HEAD", "GET", "OPTIONS"],  # HTTP methods to retry
+        allowed_methods=["HEAD", "GET", "OPTIONS"],  # HTTP methods to retry
         backoff_factor=1  # Exponential backoff factor (e.g., 1, 2, 4 seconds)
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)

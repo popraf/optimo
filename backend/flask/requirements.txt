@@ -1,2 +1,6 @@
 Flask==1.1.4
 requests==2.7.0
+SQLAlchemy==1.2.19
+Flask-SQLAlchemy==2.3.2
+pymysql==0.9.3
+python-dotenv==0.11.0

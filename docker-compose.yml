@@ -86,7 +86,7 @@ services:
       - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "localhost:8005/health"]  # curl --fail http://0.0.0.0:8005/health || exit 1
-      interval: 15s
+      interval: 45s
       timeout: 10s
       retries: 3
   
