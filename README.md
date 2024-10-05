@@ -3,7 +3,19 @@ Python Developer Recruitment Task
 
 This is an application designed to streamline book reservations and manage library resources efficiently. 
 This system leverages both Django and Flask frameworks, orchestrated through Docker Compose, to provide a robust and scalable solution for library management.
-The aplication features Django Celery Beat and Redis for notification sending via email, and Flask to check external libraries.
+The aplication also features Django Celery Beat and Redis for notification sending via email, and Flask to check external libraries.
+
+### Basic Business Logic
+* Input data validation that ensures book_id, reserved_until, and library are provided correctly. Validates the format of reserved_until (ISO 8601 format) and ensures that the reservation period does not exceed one month from the current date.
+
+* Checks availability in main library by quering the MySQL db to check if the book is available in primary library (Main Library). If available:
+    1. Creates a reservation entry in the database linking the user, book, reservation period, and library.
+    2. Logs the reservation event.
+    3. Responds with a success message and reservation details.
+
+* Check availability in other libraries via Flask API: If the book is not available in the Main Library, Django sends a GET request to the Flask API endpoint `/status/<book_id>`. Flask API responds with the availability status of the book across other libraries. This logic also implements a retry strategy (3 retries) to handle transient failures when communicating with the Flask API.
+
+* Reservation via Flask API: If the Flask API indicates availability in other libraries, user can reserve a book using Flask `/reserve` endpoint. If the book is not available in any library, API responses with an error message indicating unavailability. The endpoint reserves a book by calling Django's endpoint, therefore the core reservation logic should be maintained only in Django.
 
 ### Features
 Core features include:
@@ -50,16 +62,21 @@ The system consists of the following components:
     Ensure that all services are correctly defined in the docker-compose.yml file and that environment variables are appropriately set in the .env file.
 
 4. Build and Start Services
+    
+    * Using Docker Compose:
 
-    From the project's root directory, run: 
-    ```
-    docker-compose up --build -d
-    ```
+        From the project's root directory, run: 
+        ```
+        docker-compose up --build -d
+        ```
 
-    Check the status of all services via: 
-    ```
-    docker-compose ps
-    ```
+        Check the status of all services via: 
+        ```
+        docker-compose ps
+        ```
+    * Using Docker Dev Container:
+        
+        Dev containers are prepared for both Django and Flask applications, therefore please adhere to commonly known instructions. Both dev containers are available in `.devcontainer` folder.
 
 ### API Endpoints
 
