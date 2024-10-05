@@ -86,7 +86,7 @@ def reserve():
     # Prepare the payload for the Django API
     payload = {
         'book_id': book_id,
-        'reserved_until': reserved_until,  # TODO
+        'reserved_until': reserved_until,
         'library': library
     }
 
