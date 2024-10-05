@@ -164,5 +164,5 @@ cython_debug/
 # Django related
 static_media/
 migrations/
-backend/django-backend/.flake8
+backend/django_backend/.flake8
 backend/flask/.flake8

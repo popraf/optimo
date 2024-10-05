@@ -6,8 +6,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from requests.exceptions import RequestException
+from requests.adapters import HTTPAdapter
 from django.contrib.auth.models import User
 from django.utils import timezone
+from urllib3.util.retry import Retry
 
 from .models import Book, Reservation
 from .serializers import (
@@ -49,6 +51,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,  # Total number of retry attempts
+        status_forcelist=[429, 500, 502, 503, 504],  # HTTP status codes to retry on
+        method_whitelist=["HEAD", "GET", "OPTIONS"],  # HTTP methods to retry
+        backoff_factor=1  # Exponential backoff factor (e.g., 1, 2, 4 seconds)
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
 
     @action(detail=False, methods=['post'])
     def reserve(self, request):
