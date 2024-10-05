@@ -78,9 +78,12 @@ services:
     volumes:
       - ./backend/flask:/app_flask
     depends_on:
-      - optimo-mysql
-      - optimo-redis
-      - optimo-django-migrate
+      optimo-django-migrate:
+        condition: service_completed_successfully
+      optimo-mysql:
+        condition: service_healthy
+      optimo-redis:
+        condition: service_started
     restart: on-failure
     networks:
       - app-network
