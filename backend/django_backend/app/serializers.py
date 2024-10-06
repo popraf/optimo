@@ -1,35 +1,36 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Book, Reservation
 from django.contrib.auth.password_validation import validate_password
+from datetime import timezone, timedelta
+from .models import Book, Reservation
 
 
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = '__all__'
-
-    def validate(self, attrs):
-        request = self.context.get('request')
-        # Prevent non-admin users from setting certain fields
-        if request and not request.user.is_staff:
-            if any(item in ['book_id', 'title', 'author', 'isbn'] for item in attrs):
-                raise serializers.ValidationError(
-                    "You do not have permission to set the field."
-                    )
-        return attrs
+        read_only_fields = ['book_id']
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+    book_title = serializers.ReadOnlyField(source='book.title')
+
     class Meta:
         model = Reservation
-        fields = '__all__'
+        fields = ['reservation_id',
+                  'user',
+                  'book',
+                  'reserved_at',
+                  'reserved_until',
+                  'reservation_status',
+                  'is_external']
+        read_only_fields = ['reservation_id', 'reserved_at', 'reservation_status']
 
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email']
+    def validate(self, data):
+        # Set reserved_until to one month from today
+        data['reserved_until'] = timezone.now() + timedelta(days=30)
+        return data
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -56,3 +57,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+
+
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['id', 'username', 'email']

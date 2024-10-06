@@ -46,7 +46,7 @@ def check_reservation_deadlines():
     now = timezone.now()
     reminder_time = now + timedelta(days=3)  # 3 days before the return deadline
     reservations = Reservation.objects.filter(
-        is_reservation_finished=False,
+        reservation_status=False,
         reserved_until__gte=now,
         reserved_until__lte=reminder_time
     )
