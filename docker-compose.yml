@@ -13,7 +13,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT}:${MYSQL_PORT}"
     restart: unless-stopped
     volumes:
       - db_data:/var/lib/mysql
@@ -32,7 +32,7 @@ services:
     env_file:
       - .env
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     restart: unless-stopped
     networks:
       - app-network
@@ -68,9 +68,9 @@ services:
       context: ./backend/flask
       dockerfile: Dockerfile
     ports:
-      - '8005:8005'
+      - '${FLASK_PORT}:${FLASK_PORT}'
     environment:
-      BROKER_URL: ${BROKER_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
@@ -88,7 +88,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "localhost:8005/health"]  # curl --fail http://0.0.0.0:8005/health || exit 1
+      test: ["CMD", "curl", "-f", "localhost:${FLASK_PORT}/health"]
       interval: 45s
       timeout: 10s
       retries: 3
@@ -102,15 +102,16 @@ services:
       context: ./backend/django_backend
       dockerfile: Dockerfile
     ports:
-      - '8000:8000'
+      - '${DJANGO_PORT}:${DJANGO_PORT}'
     environment:
-      BROKER_URL: ${BROKER_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: ${DATABASE_NAME}
     volumes:
       - ./backend/django_backend:/app_django
+    command: sh -c "python manage.py runserver 0.0.0.0:${DJANGO_PORT}"
     depends_on:
       optimo-django-migrate:
         condition: service_completed_successfully
@@ -140,8 +141,8 @@ services:
     command: celery -A django_backend worker --loglevel=info
     environment:
       DJANGO_SETTINGS_MODULE: django_backend.settings
-      CELERY_BROKER_URL: ${BROKER_URL}
-      CELERY_RESULT_BACKEND: ${BROKER_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_BROKER_URL}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
@@ -165,8 +166,8 @@ services:
     command: celery -A django_backend beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       DJANGO_SETTINGS_MODULE: django_backend.settings
-      CELERY_BROKER_URL: ${BROKER_URL}
-      CELERY_RESULT_BACKEND: ${BROKER_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_BROKER_URL}
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_USER: ${DATABASE_USER}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}

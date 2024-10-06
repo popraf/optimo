@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import copy
@@ -27,9 +28,8 @@ def check_availability(isbn):
     # Instead, I simulate it with mock
     books = copy.deepcopy(MOCK_BOOK_DATA)
 
-    for key, value in books.items():
-        if str(value['isbn']) != str(isbn) or int(value['count_in_library']) < 1:
-            del books[key]
+    books = {key: value for key, value in books.items()
+             if str(value['isbn']) == str(isbn) and int(value['count_in_library']) >= 1}
 
     if not books:
         return jsonify({'error': 'Not found books based on ISBN'}), 404
@@ -69,7 +69,7 @@ def reserve():
     reserved_until = data.get('reserved_until')
 
     # Make a request to the Django app's reservation endpoint
-    django_api_url = 'http://optimo-django:8000'  # Django service URL in Docker
+    django_api_url = 'http://{}:{}'.format(os.getenv('DJANGO_HOST'), os.getenv('DJANGO_PORT'))  # Django service URL in Docker
     reservation_url = '%s/reservations/reserve/' % django_api_url
 
     # Prepare the payload for the Django API
@@ -110,4 +110,4 @@ def reserve():
 if __name__ == '__main__':
     required_tables = ['flask_logs']
     initialize_database(db, required_tables)
-    app.run(host='0.0.0.0', port=8005)
+    app.run(host='0.0.0.0', port=os.getenv('FLASK_PORT'))

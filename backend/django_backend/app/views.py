@@ -91,13 +91,18 @@ class ReserveBookView(generics.CreateAPIView):
                 raise ValidationError("This book is not available in the \
                                     internal and external library system.")
 
-            # Select book PK from external API, currently uses the first on the list that is > 0
-            selected_pk = external_availability['pk']
-            # TODO fix according to flask
-            external_library_details = availability_service.get_book_details(selected_pk)
-            reservation_library = external_library_details['library']
+            # Select book PK from external API, currently uses the first on the list
+            #   API returns libraries with count of books > 0 in libraries
+            selected_book_external_pk, availability_details = list(external_availability.items())[0]
+
+            if not availability_details > 0:
+                # TODO logging here
+                raise ValidationError("Unexpected error, only available books from \
+                                      external API should be received.")
+
+            reservation_library = availability_details['library']
             # Reserve book via Flask endpoint (count - 1)
-            availability_service.reserve_book_external_api(book.isbn)
+            availability_service.reserve_book_external_api(selected_book_external_pk)
             is_external = True
 
         else:

@@ -8,6 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app_flask/
 
-EXPOSE 8005
-
 CMD ["python", "app.py"]

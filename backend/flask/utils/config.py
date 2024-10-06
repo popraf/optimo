@@ -7,10 +7,10 @@ from utils.logging_handler import SQLAlchemyHandler
 load_dotenv()
 
 DB_HOST = os.environ.get('DATABASE_HOST')
-DB_PORT = os.environ.get('DATABASE_PORT', '3306')  # default if not set
+DB_PORT = os.environ.get('DATABASE_PORT')
 DB_USER = os.environ.get('DATABASE_USER')
 DB_PASSWORD = os.environ.get('DATABASE_PASSWORD')
-DB_NAME = os.environ.get('DATABASE_NAME', 'optimo_mysql_db')  # default
+DB_NAME = os.environ.get('DATABASE_NAME')
 
 
 def config_db(app):
