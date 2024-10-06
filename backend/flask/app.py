@@ -1,49 +1,15 @@
 import requests
 import json
+import copy
 from flask import Flask, jsonify, request, abort
 from utils.db_init import initialize_database
 from utils.config import config_db, config_handler
+from tests.mock_data import MOCK_BOOK_DATA
 
 
 app = Flask(__name__)
 db = config_db(app)
 config_handler(db, app)
-
-
-# Mock sample data for book status in different libraries
-external_book_status = {
-    1: {
-        'data': {
-            'library 2': True,
-            'library 3': False,
-            'library 4': True
-        }
-    },
-    2: {
-        'data': {
-            'library 2': False,
-            'library 3': True,
-            'library 4': True
-        }
-    },
-    3: {
-        'data': {
-            'library 2': True,
-        }
-    },
-    4: {
-        'data': {
-            'library 4': False
-        }
-    },
-    5: {
-        'data': {
-            'library 2': False,
-            'library 3': False,
-            'library 4': False
-        }
-    },
-}
 
 
 @app.route('/health', methods=['GET'])
@@ -52,17 +18,40 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
 
 
-@app.route('/status/<int:book_id>', methods=['GET'])
-def status(book_id):
-    book_info = external_book_status.get(book_id)
-    if book_info is None:
-        # Book ID not found in the external service
-        app.logger.info('Status request for unknown book_id %s', book_id)
-        return jsonify({'book_id': book_id, 'availability': {}}), 404
-    else:
-        availability = book_info.get('data', {})
-        app.logger.info('Status request for book_id %s: Availability=%s', book_id, availability)
-        return jsonify({'book_id': book_id, 'availability': availability}), 200
+@app.route('/books/<isbn>/availability', methods=['GET'])
+def check_availability(isbn):
+    """
+    Endpoint to check book availability in other libraries.
+    """
+    # External API logic should be applied here.
+    # Instead, I simulate it with mock
+    books = copy.deepcopy(MOCK_BOOK_DATA)
+
+    for key, value in books.items():
+        if str(value['isbn']) != str(isbn) or int(value['count_in_library']) < 1:
+            del books[key]
+
+    if not books:
+        return jsonify({'error': 'Not found books based on ISBN'}), 404
+
+    return jsonify(books), 200
+
+
+@app.route('/books/<int:pk>/details', methods=['GET'])
+def get_book_details(pk):
+    """
+    Endpoint to get details about a book.
+    """
+    book = MOCK_BOOK_DATA.get(pk)
+    if book:
+        return jsonify({
+            'title': book.get('title'),
+            'author': book.get('author'),
+            'isbn': book.get('isbn'),
+            'library': book.get('library'),
+            'count_in_library': book.get('count_in_library')
+        }), 200
+    return jsonify({'error': 'Book not found'}), 404
 
 
 @app.route('/reserve', methods=['POST'])
