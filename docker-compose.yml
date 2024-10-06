@@ -44,7 +44,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: sh -c "python manage.py makemigrations && python manage.py migrate"
+    command: sh -c "python manage.py makemigrations && python manage.py makemigrations app && python manage.py migrate"
     environment:
       DJANGO_SETTINGS_MODULE: django_backend.settings
       DATABASE_HOST: ${DATABASE_HOST}

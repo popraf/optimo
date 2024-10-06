@@ -1,0 +1,11 @@
+.git/
+.pytest_cache/
+__pycache__/
+
+.dockerignore
+.venv/
+.env.example
+
+migrations/
+
+*.pyc
