@@ -1,6 +1,5 @@
 import requests
 import copy
-import json
 from flask import Blueprint, jsonify, request, current_app
 from marshmallow import Schema, fields, ValidationError
 from utils.aes_encryption import SimpleAES, encrypt_payload

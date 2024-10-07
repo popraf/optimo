@@ -1,11 +1,7 @@
-import os
-import logging
-import datetime
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from utils.db_init import initialize_database
 from utils.config import Config, log_config_handler
-from utils.logging_handler import setup_logging
 from views.views import library_manage_blueprint
 
 
