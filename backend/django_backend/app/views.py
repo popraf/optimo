@@ -77,6 +77,7 @@ class ReturnBookView(generics.UpdateAPIView):
 
     def perform_update(self, serializer, instance):
         # Using the serializer to update the reservation instance
+        logger.info(f"Updating reservation instance ID: {instance.reservation_id}")
         serializer.update(instance=instance, validated_data=serializer.validated_data)
 
 
@@ -102,45 +103,53 @@ class ReserveBookView(generics.CreateAPIView):
     def perform_create(self, serializer):
         book = serializer.validated_data['book']
         availability_service = AvailabilityService()
+        logger.info(f"User is attempting to reserve book: {book.isbn}")
 
-        # Apply certain logic: if book is not available in the main library,
-        #   then check external ones, and if is available continue with respective library
-        if book.count_in_library < 1:
-            # Check the availability from the external system using the service
-            external_availability = availability_service.check_book_availability_flask(book.isbn)
+        try:
+            # Apply certain logic: if book is not available in the main library,
+            #   then check external ones, and if is available continue with respective library
+            if book.count_in_library < 1:
+                # Check the availability from the external system using the service
+                external_availability = availability_service.check_book_availability_flask(book.isbn)
 
-            # Check book in external libraries
-            if not external_availability:
-                raise ValidationError("This book is not available in the \
-                                    internal and external library system.")
+                # Check book in external libraries
+                if not external_availability:
+                    raise ValidationError("This book is not available in the \
+                                        internal and external library system.")
 
-            # Select book PK from external API, currently uses the first on the list
-            #   API returns libraries with count of books > 0 in libraries
-            selected_book_external_pk, availability_details = list(external_availability.items())[0]
+                # Select book PK from external API, currently uses the first on the list
+                #   API returns libraries with count of books > 0 in libraries
+                selected_book_external_pk, availability_details = list(external_availability.items())[0]
 
-            if not availability_details > 0:
-                # TODO logging here
-                raise ValidationError("Unexpected error, only available books from \
-                                      external API should be received.")
+                if not availability_details > 0:
+                    # TODO logging here
+                    raise ValidationError("Unexpected error, only available books from \
+                                        external API should be received.")
 
-            reservation_library = availability_details['library']
-            # Reserve book via Flask endpoint (count - 1)
-            availability_service.reserve_book_external_api(selected_book_external_pk)
-            is_external = True
+                reservation_library = availability_details['library']
+                # Reserve book via Flask endpoint (count - 1)
+                availability_service.reserve_book_external_api(selected_book_external_pk)
+                is_external = True
 
-        else:
-            # Process with a 'Main Library'
-            reservation_library = book.library
-            # Decrease the available copies count and create the reservation
-            book.count_in_library -= 1
-            book.save()
-            is_external = False
+            else:
+                # Process with a 'Main Library'
+                reservation_library = book.library
+                # Decrease the available copies count and create the reservation
+                book.count_in_library -= 1
+                book.save()
+                is_external = False
 
-        # Create the reservation with user and book
-        serializer.save(
-            user=self.request.user,
-            reservation_library=reservation_library,
-            is_external=is_external)
+            # Create the reservation with user and book
+            serializer.save(
+                user=self.request.user,
+                reservation_library=reservation_library,
+                is_external=is_external)
+        except ValidationError as e:
+            logger.error(f"Validation error while reserving book '{book.title}': {str(e)}")
+            raise e
+        except Exception as e:
+            logger.error(f"Error while reserving book '{book.title}': {str(e)}")
+            raise ValidationError("An error occurred while reserving the book")
 
 
 class UserRegistrationView(generics.CreateAPIView):
