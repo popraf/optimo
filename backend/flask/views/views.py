@@ -114,19 +114,25 @@ def login(encrypted_data):
 
 
 @library_manage_blueprint.route('/book_reserved_external/<int:pk>', methods=['POST'])
-def book_reserved_external():
-    """Endpoint to reserve a book from external library
+def book_reserved_external(pk):
+    """Endpoint to reserve a book in external library
     """
-    aes_encryption = SimpleAES()
+    # aes_encryption = SimpleAES()
     django_verification_url = '{}/api/token/verify/'.format(Config.DJANGO_API_URL)
     try:
-        reservation_data = reservation_schema.load(request.json)  # Data validation
+        results = reservation_schema.load(request.json)
+
+        if results.errors:
+            # Handle validation errors if there are any
+            current_app.logger.error('Validation error: %s', results.errors)
+            return jsonify({"error": "Validation error", "messages": results.errors}), 400
+
         auth_header = request.headers.get('Authorization')
 
         if not auth_header:
             return jsonify({"error": "Missing Authorization header"}), 401
 
-        auth_header = aes_encryption.decrypt_data(auth_header)
+        # auth_header = aes_encryption.decrypt_data(auth_header)
         jwt_token = auth_header.split(' ')[1]
 
         # Verify token in Django
@@ -139,10 +145,10 @@ def book_reserved_external():
             return jsonify({"error": "Invalid token"}), 403
 
         # Reserve a book in external library (mock data)
-        book = MOCK_BOOK_DATA.get(reservation_data)
+        book = MOCK_BOOK_DATA.get(pk)
         book['count_in_library'] -= 1
-        current_app.logger.info('Book %s reserved in external library', reservation_data)
-        return jsonify({"message": "Book with id {} reserved successfully"}.format(reservation_data)), 200
+        current_app.logger.info('Book %s reserved in external library', pk)
+        return jsonify({"message": "Book with id {} reserved successfully"}.format(pk)), 200
     except ValidationError as err:
         current_app.logger.error('HTTP error occurred: %s', err)
         return jsonify({"error": "Validation error", "messages": err.messages}), 400
@@ -152,7 +158,7 @@ def book_reserved_external():
 
 
 @library_manage_blueprint.route('/reserve/<int:pk>', methods=['POST'])
-def reserve():
+def reserve(pk):
     """Endpoint to reserve a book via Django endpoint
     """
     aes_encryption = SimpleAES()

@@ -97,30 +97,32 @@ The Django backend provides endpoints for managing users, books, and reservation
         }
         ```
 
+* Check Book Availability by ISBN
+    * Endpoint: /api/books/< isbn >/availability
+    * Method: GET
+    * Description: Check the availability of a book across different libraries using its ISBN.
+
 * Book Management
     * List Books
         * Endpoint: /api/books/
         * Method: GET
         * Description: Retrieve a list of all books.
     * Retrieve Book Details
-        * Endpoint: /api/books/{id}/
+        * Endpoint: /api/books/{id}/details
         * Method: GET
         * Description: Retrieve details of a specific book, required JWT auth data in request.
         * Create, Update, Delete Books: Restricted to admin users.
 
+* User Login
+    * Endpoint: /api/login
+    * Method: POST
+    * Description: Login to the library system. This will authenticate the user and return a JWT token for further API interactions.
+
 * Reservation Management
     * Reserve a Book
-        * Endpoint: /api/reservations/reserve/
+        * Endpoint: /api/reserve/< pk >
         * Method: POST
         * Description: Reserve a book, required JWT auth data in request.
-        * Payload:
-            ```
-            {
-                "book_id": 1,
-                "reserved_until": "2024-12-31T23:59:59",
-                "library": "Main Library"
-            }
-            ```
 
     * Return a Book
         * Endpoint: /api/reservations/{id}/return_book/
@@ -136,20 +138,36 @@ The Flask API handles status checks for book availability.
     * Description: Check if the Flask service is running.
 
 * Check Book Availability
-    * Endpoint: /status/<book_id>
+    * Endpoint: /books/<isbn>/availability
     * Method: GET
-    * Description: Retrieve availability status of a book across different libraries. Currently works only on mock data. book_id is int.
+    * Description: Retrieve book available across different external libraries. Currently works only on mock data.
     * Response:
         ```
-        {
-            "book_id": 1,
-            "availability": {
-                "library 2": true,
-                "library 3": false,
-                "library 4": true
-            }
-        }
+        1: {
+            "library": "Library 1",
+            "count_in_library": 1
+        },
         ```
+
+* Check Book Details
+    * Endpoint: /books/<int:pk>/details
+    * Method: GET
+    * Description: Retrieve details of a book from external library. Currently works only on mock data.
+    * Response:
+        ```
+        1: {
+            "title": "Title Book",
+            "author": "Test Author",
+            "isbn": 123123,
+            "library": "Library 1",
+            "count_in_library": 1
+        },
+        ```
+
+* User Login
+    * Endpoint: /login
+    * Method: POST
+    * Description: User login, returns refresh and access tokens provided by Django.
 
 * Reserve a Book via Flask
     * Endpoint: /reserve
@@ -162,8 +180,20 @@ The Flask API handles status checks for book availability.
         ```
         {
             "book_id": 1,
-            "reserved_until": '2024-12-31T23:59:59',
-            "library": "Main Library"
+        }
+        ```
+
+* Reserve a Book via Flask
+    * Endpoint: /book_reserved_external/<int:pk>
+    * Method: POST
+    * Description: Reserve a book in external library.
+    * Headers:
+        * Authorization: Bearer <JWT_TOKEN>
+        * Content-Type: application/json
+    * Payload:
+        ```
+        {
+            "book_id": 1,
         }
         ```
 

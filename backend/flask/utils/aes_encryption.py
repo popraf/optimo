@@ -37,7 +37,6 @@ def encrypt_payload(func):
         try:
             # Load JSON data from request
             data = request.get_json()
-            print('JSON DATA: ', data)
             if not data:
                 return jsonify({"error": "Missing JSON payload"}), 400
 
