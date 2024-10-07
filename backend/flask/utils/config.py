@@ -1,42 +1,35 @@
 import os
 import logging
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
 from utils.logging_handler import SQLAlchemyHandler
 
 load_dotenv()
 
-FLASK_SECRET = os.getenv('FLASK_SECRET')
-DB_HOST = os.environ.get('DATABASE_HOST')
-DB_PORT = os.environ.get('DATABASE_PORT')
-DB_USER = os.environ.get('DATABASE_USER')
-DB_PASSWORD = os.environ.get('DATABASE_PASSWORD')
-DB_NAME = os.environ.get('DATABASE_NAME')
-DJANGO_HOST = os.environ.get('DJANGO_HOST')
-DJANGO_PORT = os.environ.get('DJANGO_PORT')
 
-DJANGO_API_URL = 'http://{}:{}'.format(DJANGO_HOST, DJANGO_PORT)
+class Config:
+    FLASK_SECRET = os.getenv('FLASK_SECRET')
+    DB_HOST = os.environ.get('DATABASE_HOST')
+    DB_PORT = os.environ.get('DATABASE_PORT')
+    DB_USER = os.environ.get('DATABASE_USER')
+    DB_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+    DB_NAME = os.environ.get('DATABASE_NAME')
+    DJANGO_HOST = os.environ.get('DJANGO_HOST')
+    DJANGO_PORT = os.environ.get('DJANGO_PORT')
 
+    DJANGO_API_URL = 'http://{}:{}'.format(DJANGO_HOST, DJANGO_PORT)
 
-def config_db(app):
-    """
-    Configure the Flask app with SQLAlchemy and logging.
-    """
-    # Configure SQLAlchemy with MySQL database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{}:{}@{}:{}/{}?charset=utf8mb4'.format(
         DB_USER,
         DB_PASSWORD,
         DB_HOST,
         DB_PORT,
         DB_NAME
     )
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    db = SQLAlchemy(app)
-    return db, app
 
 
-def config_handler(db, app):
+def log_config_handler(db, app):
     # Set up logging with SQLAlchemy
     session = db.session
     db_handler = SQLAlchemyHandler(session)
@@ -54,3 +47,4 @@ def config_handler(db, app):
     # Add the custom database handler
     app.logger.addHandler(db_handler)
     app.logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)

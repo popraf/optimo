@@ -25,3 +25,20 @@ class SQLAlchemyHandler(logging.Handler):
             self.db_session.commit()
         except Exception:
             self.handleError(record)
+
+
+def setup_logging(app, db):
+    db_handler = SQLAlchemyHandler(db.session)
+    db_handler.setLevel(logging.INFO)
+    # Define log format
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    db_handler.setFormatter(formatter)
+
+    # Remove existing handlers (like the default StreamHandler)
+    if app.logger.handlers:
+        for handler in app.logger.handlers:
+            app.logger.removeHandler(handler)
+
+    # Add the custom database handler
+    app.logger.addHandler(db_handler)
+    app.logger.setLevel(logging.INFO)

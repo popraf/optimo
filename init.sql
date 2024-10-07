@@ -1,0 +1,8 @@
+USE optimo_mysql_db;
+
+CREATE TABLE IF NOT EXISTS flask_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    level VARCHAR(10) NOT NULL,
+    message TEXT NOT NULL
+);
