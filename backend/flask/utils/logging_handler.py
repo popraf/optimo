@@ -14,7 +14,7 @@ class SQLAlchemyHandler(logging.Handler):
         self.db_session = db_session
 
     def emit(self, record):
-        from utils.models import Log  # Lazy import / factory pattern / to avoid circular reference
+        from models import Log  # Lazy import / factory pattern / to avoid circular reference
         try:
             log_entry = Log(
                 timestamp=datetime.fromtimestamp(record.created),

@@ -6,11 +6,16 @@ from utils.logging_handler import SQLAlchemyHandler
 
 load_dotenv()
 
+FLASK_SECRET = os.getenv('FLASK_SECRET')
 DB_HOST = os.environ.get('DATABASE_HOST')
 DB_PORT = os.environ.get('DATABASE_PORT')
 DB_USER = os.environ.get('DATABASE_USER')
 DB_PASSWORD = os.environ.get('DATABASE_PASSWORD')
 DB_NAME = os.environ.get('DATABASE_NAME')
+DJANGO_HOST = os.environ.get('DJANGO_HOST')
+DJANGO_PORT = os.environ.get('DJANGO_PORT')
+
+DJANGO_API_URL = 'http://{}:{}'.format(DJANGO_HOST, DJANGO_PORT)
 
 
 def config_db(app):
@@ -28,12 +33,13 @@ def config_db(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db = SQLAlchemy(app)
-    return db
+    return db, app
 
 
 def config_handler(db, app):
     # Set up logging with SQLAlchemy
-    db_handler = SQLAlchemyHandler(db.session)
+    session = db.session
+    db_handler = SQLAlchemyHandler(session)
     db_handler.setLevel(logging.INFO)
 
     # Define log format

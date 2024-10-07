@@ -31,7 +31,7 @@ class AvailabilityService:
             return False
 
     def reserve_book_external_api(self, pk):
-        request_flask_api_url = f"{self.base_flask_api_url}/{pk}/reserve"
+        request_flask_api_url = f"{self.base_flask_api_url}/book_reserved_external/{pk}"
         try:
             response = requests.get(request_flask_api_url, timeout=5)
             response.raise_for_status()
