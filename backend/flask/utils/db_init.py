@@ -20,7 +20,7 @@ def initialize_database(app, db, required_tables):
                 db.session.commit()
             print("Missing tables have been created.")
         except Exception as e:
-            print("Error creating tables: {}".format(e))
+            print("Error creating tables: {}".format(str(e)))
             sys.exit(1)
     else:
         print("All required tables are present.")

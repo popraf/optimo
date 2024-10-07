@@ -36,4 +36,4 @@ class Reservation(models.Model):
 
     class Meta:
         # Prevents multiple reservations of the same book by the same user.
-        unique_together = ('user', 'book')
+        unique_together = ('user', 'book', 'reservation_status')

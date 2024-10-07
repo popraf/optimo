@@ -108,7 +108,7 @@ The Django backend provides endpoints for managing users, books, and reservation
         * Method: GET
         * Description: Retrieve a list of all books.
     * Retrieve Book Details
-        * Endpoint: /api/books/{id}/details
+        * Endpoint: /api/books/< pk >/details
         * Method: GET
         * Description: Retrieve details of a specific book, required JWT auth data in request.
         * Create, Update, Delete Books: Restricted to admin users.
@@ -125,7 +125,7 @@ The Django backend provides endpoints for managing users, books, and reservation
         * Description: Reserve a book, required JWT auth data in request.
 
     * Return a Book
-        * Endpoint: /api/reservations/{id}/return_book/
+        * Endpoint: /api/reservations/< pk >/return_book/
         * Method: POST
         * Description: Return a reserved book, required JWT auth data in request.
 

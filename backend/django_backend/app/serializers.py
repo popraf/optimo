@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
-from datetime import timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from .models import Book, Reservation
 
 
@@ -14,7 +14,6 @@ class BookSerializer(serializers.ModelSerializer):
 
 class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
-    book_title = serializers.ReadOnlyField(source='book.title')
 
     class Meta:
         model = Reservation
@@ -26,11 +25,14 @@ class ReservationSerializer(serializers.ModelSerializer):
                   'reservation_status',
                   'is_external']
         read_only_fields = ['reservation_id', 'reserved_at', 'reservation_status']
+        extra_kwargs = {
+            'reserved_until': {'required': False}
+        }
 
-    def validate(self, data):
+    def create(self, validated_data):
         # Set reserved_until to one month from today
-        data['reserved_until'] = timezone.now() + timedelta(days=30)
-        return data
+        validated_data['reserved_until'] = datetime.now(timezone.utc) + timedelta(days=30)
+        return super().create(validated_data)
 
 
 class ReturnBookSerializer(serializers.ModelSerializer):
@@ -53,7 +55,7 @@ class ReturnBookSerializer(serializers.ModelSerializer):
 
         # Check if the reservation is already returned
         if not reservation.reservation_status:
-            raise serializers.ValidationError("This book has already been returned.")
+            raise serializers.ValidationError("Reservation does not exist or already returned.")
 
         return data
 

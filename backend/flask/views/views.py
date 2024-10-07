@@ -65,12 +65,10 @@ def get_book_details(pk):
 
 
 @library_manage_blueprint.route('/login', methods=['POST'])
-@encrypt_payload
-def login(encrypted_data):
+def login():
     """Login to library endpoint
     """
-    # aes_encryption = SimpleAES()
-    django_login_url = '{}/api/token/'.format(Config.DJANGO_API_URL)
+    django_login_url = '{}/api/token/'.format(str(Config.DJANGO_API_URL))
     try:
         results = login_schema.load(request.json)
 
@@ -117,8 +115,7 @@ def login(encrypted_data):
 def book_reserved_external(pk):
     """Endpoint to reserve a book in external library
     """
-    # aes_encryption = SimpleAES()
-    django_verification_url = '{}/api/token/verify/'.format(Config.DJANGO_API_URL)
+    django_verification_url = '{}/api/token/verify/'.format(str(Config.DJANGO_API_URL))
     try:
         results = reservation_schema.load(request.json)
 
@@ -132,7 +129,6 @@ def book_reserved_external(pk):
         if not auth_header:
             return jsonify({"error": "Missing Authorization header"}), 401
 
-        # auth_header = aes_encryption.decrypt_data(auth_header)
         jwt_token = auth_header.split(' ')[1]
 
         # Verify token in Django
@@ -146,9 +142,13 @@ def book_reserved_external(pk):
 
         # Reserve a book in external library (mock data)
         book = MOCK_BOOK_DATA.get(pk)
+
+        if book['count_in_library'] < 1:
+            return jsonify({"error": "Book {} not available in external library".format(str(pk))}), 400
+
         book['count_in_library'] -= 1
         current_app.logger.info('Book %s reserved in external library', pk)
-        return jsonify({"message": "Book with id {} reserved successfully"}.format(pk)), 200
+        return jsonify({"message": "Book with id {} reserved successfully".format(str(pk))}), 200
     except ValidationError as err:
         current_app.logger.error('HTTP error occurred: %s', err)
         return jsonify({"error": "Validation error", "messages": err.messages}), 400
@@ -161,41 +161,55 @@ def book_reserved_external(pk):
 def reserve(pk):
     """Endpoint to reserve a book via Django endpoint
     """
-    aes_encryption = SimpleAES()
-    reservation_data = reservation_schema.load(request.json)  # Data validation
-    auth_header = request.headers.get('Authorization')
-
-    if not auth_header:
-        return jsonify({"error": "Missing Authorization header"}), 401
-
-    jwt_token = auth_header.split(' ')[1]
-    encrypted_token = aes_encryption.encrypt_data(jwt_token)
-
-    # Django reservation endpoint
-    reservation_url = '%s/reservations/reserve/' % Config.DJANGO_API_URL
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer %s' % encrypted_token
-    }
-
     try:
-        # POST to Django's reservation endpoint
+        # Validate and load the request data
+        reservation_data = reservation_schema.load(request.json)  # Data validation
+
+        # Get the Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return jsonify({"error": "Missing Authorization header"}), 401
+
+        # Extract and encrypt the JWT token
+        jwt_token = auth_header.split(' ')[1]
+        # encrypted_token = aes_encryption.encrypt_data(jwt_token)
+
+        reservation_url = '%s/api/reserve/' % Config.DJANGO_API_URL
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer %s' % jwt_token
+        }
+
         response = requests.post(
             reservation_url,
             json=reservation_data,
             headers=headers,
             timeout=5
         )
+
         response.raise_for_status()
-        # Log the successful reservation
         current_app.logger.info('Reservation confirmed via Django: book_id %s', reservation_data)
-        # Return the Django response
-        return jsonify({'status': 'Reservation confirmed via Django', 'details': response.json()}), response.status_code
+
+        try:
+            response_data = response.json()
+        except ValueError:
+            response_data = {"detail": response.text}
+
+        return jsonify({'status': 'Reservation confirmed via Django', 'details': response_data}), response.status_code
+
     except requests.exceptions.HTTPError as http_err:
-        # Forward the error from the Django app
         current_app.logger.error('HTTP error occurred: %s', http_err)
-        return jsonify({'status': 'Failed to reserve via Django', 'error': response.json()}), response.status_code
+        try:
+            error_details = response.json()
+        except ValueError:
+            error_details = {"detail": response.text}
+        return jsonify({'status': 'Failed to reserve via Django', 'error': error_details}), response.status_code
+
     except requests.exceptions.RequestException as e:
         current_app.logger.error('Request exception: %s', str(e))
         return jsonify({'status': 'Failed to reserve via Django', 'error': str(e)}), 500
+
+    except ValidationError as err:
+        current_app.logger.error('Validation error: %s', err.messages)
+        return jsonify({"error": "Validation error", "messages": err.messages}), 400

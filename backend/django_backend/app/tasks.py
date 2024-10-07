@@ -1,3 +1,4 @@
+import logging
 from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
@@ -7,7 +8,6 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 from .models import Reservation
-import logging
 
 logger = logging.getLogger(__name__)
 

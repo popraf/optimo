@@ -121,7 +121,7 @@ class ReserveBookView(generics.CreateAPIView):
                 #   API returns libraries with count of books > 0 in libraries
                 selected_book_external_pk, availability_details = list(external_availability.items())[0]
 
-                if not availability_details > 0:
+                if not availability_details['count_in_library'] > 0:
                     # TODO logging here
                     raise ValidationError("Unexpected error, only available books from \
                                         external API should be received.")
@@ -139,11 +139,12 @@ class ReserveBookView(generics.CreateAPIView):
                 book.save()
                 is_external = False
 
-            # Create the reservation with user and book
-            serializer.save(
-                user=self.request.user,
-                reservation_library=reservation_library,
-                is_external=is_external)
+            if serializer.is_valid():
+                serializer.save(
+                    user=self.request.user,
+                    reservation_library=reservation_library,
+                    is_external=is_external,
+                    )
         except ValidationError as e:
             logger.error(f"Validation error while reserving book '{book.title}': {str(e)}")
             raise e
