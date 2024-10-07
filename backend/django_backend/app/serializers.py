@@ -33,6 +33,38 @@ class ReservationSerializer(serializers.ModelSerializer):
         return data
 
 
+class ReturnBookSerializer(serializers.ModelSerializer):
+    reservation_id = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = Reservation
+        fields = ['reservation_id']
+
+    def validate(self, data):
+        request_user = self.context['request'].user  # Get the user from the serializer context
+        try:
+            reservation = Reservation.objects.get(reservation_id=data['reservation_id'])
+        except Reservation.DoesNotExist:
+            raise serializers.ValidationError("Reservation with this ID does not exist.")
+
+        # Check if the user who is trying to return the book is the same who made the reservation
+        if reservation.user != request_user:
+            raise serializers.ValidationError("You do not have permission to return this book.")
+
+        # Check if the reservation is already returned
+        if not reservation.reservation_status:
+            raise serializers.ValidationError("This book has already been returned.")
+
+        return data
+
+    def update(self, instance, validated_data):
+        instance.reservation_status = False  # Set the reservation as inactive
+        instance.book.count_in_library += 1  # Increment the count of the book in the library
+        instance.book.save()  # Save the updated book count
+        instance.save()  # Save the reservation update
+        return instance
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,

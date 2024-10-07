@@ -5,6 +5,7 @@ from .views import (
     BookListCreateView,
     UserReservationListView,
     ReserveBookView,
+    ReturnBookView,
     )
 
 
@@ -20,5 +21,8 @@ urlpatterns = [
 
     # Reserve a book (User only)
     path('reserve/', ReserveBookView.as_view(), name='reserve_book'),
+
+    # Return a book
+    path('return/', ReturnBookView.as_view(), name='return_book'),
     ]
 urlpatterns += router.urls

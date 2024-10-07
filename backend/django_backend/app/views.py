@@ -10,7 +10,8 @@ from .serializers import (
     BookSerializer,
     ReservationSerializer,
     # UserSerializer,
-    UserRegistrationSerializer)
+    UserRegistrationSerializer,
+    ReturnBookSerializer)
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -55,6 +56,28 @@ class BookViewSet(mixins.ListModelMixin,
             serializer = self.get_serializer(books, many=True)
             return Response(serializer.data)
         return Response({"error": "Please provide an ISBN"}, status=400)
+
+
+class ReturnBookView(generics.UpdateAPIView):
+    queryset = Reservation.objects.all()
+    serializer_class = ReturnBookSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        # Get the reservation instance and update it
+        reservation = Reservation.objects.get(
+            reservation_id=serializer.validated_data['reservation_id']
+            )
+        self.perform_update(serializer, reservation)
+
+        return Response({"status": "Book returned successfully"}, status=status.HTTP_200_OK)
+
+    def perform_update(self, serializer, instance):
+        # Using the serializer to update the reservation instance
+        serializer.update(instance=instance, validated_data=serializer.validated_data)
 
 
 class BookListCreateView(generics.ListCreateAPIView):
