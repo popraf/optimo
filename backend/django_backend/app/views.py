@@ -6,6 +6,7 @@ from rest_framework.serializers import ValidationError
 from django.contrib.auth.models import User
 from services.book_availability_service import AvailabilityService
 from app.models import Book, Reservation
+from app.utils import cache_api_view
 from app.serializers import (
     BookSerializer,
     ReservationSerializer,
@@ -25,6 +26,11 @@ class BookViewSet(mixins.ListModelMixin,
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [permissions.AllowAny]
+
+    @cache_api_view('books_list', 60 * 5)
+    def list(self, request, *args, **kwargs):
+        """List all books. This list is cached, invalidation is also supported by signals"""
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'])
     def check_availability(self, request, pk=None):
