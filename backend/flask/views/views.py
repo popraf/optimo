@@ -42,7 +42,7 @@ def check_availability(isbn):
              if str(value['isbn']) == str(isbn) and int(value['count_in_library']) >= 1}
 
     if not books:
-        return jsonify({'error': 'Not found books based on ISBN'}), 404
+        return jsonify({'error': 'Not found books based on ISBN'}), 400
 
     return jsonify(books), 200
 

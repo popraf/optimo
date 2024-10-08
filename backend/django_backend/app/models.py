@@ -33,7 +33,3 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"{self.user.username} reserved {self.book.title}"
-
-    class Meta:
-        # Prevents multiple reservations of the same book by the same user.
-        unique_together = ('user', 'book', 'reservation_status')

@@ -6,16 +6,18 @@ This system leverages both Django and Flask frameworks, orchestrated through Doc
 The aplication also features Django Celery Beat and Redis for notification sending via email, and Flask to check external libraries.
 
 ### Basic Business Logic
-* Input data validation that ensures book_id, reserved_until, and library are provided correctly. Validates the format of reserved_until (ISO 8601 format) and ensures that the reservation period does not exceed one month from the current date.
+* Users can reserve and return books from the main library. If a book isn't available locally, the system checks external libraries via an external API and handles reservations accordingly.
+
+* Administrators have additional privileges to manage the book inventory through specialized endpoints.
 
 * Checks availability in main library by quering the MySQL db to check if the book is available in primary library (Main Library). If available:
     1. Creates a reservation entry in the database linking the user, book, reservation period, and library.
     2. Logs the reservation event.
     3. Responds with a success message and reservation details.
 
-* Check availability in other libraries via Flask API: If the book is not available in the Main Library, Django sends a GET request to the Flask API endpoint `/status/<book_id>`. Flask API responds with the availability status of the book across other libraries. This logic also implements a retry strategy (3 retries) to handle transient failures when communicating with the Flask API.
+* Check availability in other libraries via Flask API: If the book is not available in the Main Library, Django sends a GET request to the Flask API endpoint `/books/<isbn>/availability`. Flask API responds with the availability status of the book across other libraries. This logic also implements a retry strategy (3 retries) to handle transient failures when communicating with the Flask API.
 
-* Reservation via Flask API: If the Flask API indicates availability in other libraries, user can reserve a book using Flask `/reserve` endpoint. If the book is not available in any library, API responses with an error message indicating unavailability. The endpoint reserves a book by calling Django's endpoint, therefore the core reservation logic should be maintained only in Django.
+* Reservation via Flask API: Users can reserve a book using Flask `/reserve` endpoint. The endpoint reserves a book by calling Django's endpoint, therefore the core reservation logic should be maintained only in Django.
 
 ### Features
 Core features include:
@@ -97,10 +99,16 @@ The Django backend provides endpoints for managing users, books, and reservation
         }
         ```
 
-* Check Book Availability by ISBN
-    * Endpoint: /api/books/< isbn >/availability
+* Check Book Availability by Book PK
+    * Endpoint: /api/books/< pk:int >/check_availability
     * Method: GET
-    * Description: Check the availability of a book across different libraries using its ISBN.
+    * Description: Check availability of a book across internal and external libraries by PK from main system.
+
+* Search Book by ISBN
+    * Endpoint: /api/books/search_by_isbn/?isbn=< isbn >
+    * Method: GET
+    * Description: Check availability of a book in main system using its ISBN.
+    * Query Params: isbn
 
 * Book Management
     * List Books

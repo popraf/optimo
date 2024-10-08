@@ -31,7 +31,26 @@ class SimpleAES:
 
 
 class DecryptJWTMiddleware(MiddlewareMixin):
+    """
+    Middleware to decrypt JWT tokens encrypted with AES.
+
+    This middleware intercepts incoming requests, decrypts the encrypted JWT token 
+    in the 'Authorization' header, and updates the request for further processing.
+    """
     def process_request(self, request):
+        """
+        Decorator that decrypts the JWT token in the Authorization header,
+          if present, and updates the request.
+
+        Parameters:
+        - request: The HTTP request object containing headers.
+
+        Raises:
+        - AuthenticationFailed: If the token is invalid or cannot be decrypted.
+
+        Returns:
+        - None: Processes the request in-place (decorator).
+        """
         aes_encryption = SimpleAES()
         auth_header = request.headers.get('Authorization')
         if auth_header:

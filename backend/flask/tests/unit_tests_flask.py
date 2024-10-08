@@ -1,14 +1,15 @@
 import pytest
-import json
-import mock
-from flask import Flask
-from app import app as flask_app
+from app import create_app
 from tests.mock_data import MOCK_BOOK_DATA
+from utils.config import Config
+# import json
+# import mock
 
 
 @pytest.fixture
 def client():
-    with flask_app.test_client() as client:
+    app = create_app(Config)
+    with app.test_client() as client:
         yield client
 
 

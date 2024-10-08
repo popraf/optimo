@@ -40,5 +40,12 @@ MOCK_BOOK_DATA = {
         "isbn": 123123,
         "library": "Library 3",
         "count_in_library": 0
+    },
+    7: {
+        "title": "Title Book 7",
+        "author": "Test Author 252",
+        "isbn": 2525,
+        "library": "Library 3",
+        "count_in_library": 2
     }
 }

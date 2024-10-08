@@ -30,6 +30,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
         # Set reserved_until to one month from today
         validated_data['reserved_until'] = datetime.now(timezone.utc) + timedelta(days=30)
         return super().create(validated_data)
@@ -47,6 +48,7 @@ class ReturnBookSerializer(serializers.ModelSerializer):
         try:
             reservation = Reservation.objects.get(reservation_id=data['reservation_id'])
         except Reservation.DoesNotExist:
+            reservation = None
             raise serializers.ValidationError("Reservation with this ID does not exist.")
 
         # Check if the user who is trying to return the book is the same who made the reservation
@@ -54,7 +56,7 @@ class ReturnBookSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You do not have permission to return this book.")
 
         # Check if the reservation is already returned
-        if not reservation.reservation_status:
+        if not reservation.reservation_status or reservation is None:
             raise serializers.ValidationError("Reservation does not exist or already returned.")
 
         return data

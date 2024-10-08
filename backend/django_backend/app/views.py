@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.serializers import ValidationError
 from django.contrib.auth.models import User
 from services.book_availability_service import AvailabilityService
-from .models import Book, Reservation
-from .serializers import (
+from app.models import Book, Reservation
+from app.serializers import (
     BookSerializer,
     ReservationSerializer,
     # UserSerializer,
@@ -19,43 +19,65 @@ logger = logging.getLogger(__name__)
 
 class BookViewSet(mixins.ListModelMixin,
                   viewsets.GenericViewSet):
-    """
+    """Book view accessible to all users.
+    Defines check_availability and search_by_isbn.
     """
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [permissions.AllowAny]
 
     @action(detail=True, methods=['get'])
-    def check_external_availability(self, request, pk=None):
-        book = self.get_object()
-        availability_service = AvailabilityService()
-        # Check availability in external libraries
-        external_availability = availability_service.check_book_availability_flask(book.isbn)
-        # Check availability across different objects based on ISBN
-        local_library_network = Book.objects.filter(book.isbn)
-        local_availability_data = {
-                {
-                    'book_id': book['book_id'],
-                    book['library']: book['count_in_library']
-                } for book in local_library_network
+    def check_availability(self, request, pk=None):
+        """To search for a book in external libraries, it must be defined by ORM
+        for proper ISBN enumeration
+        """
+        try:
+            book = self.get_object()
+            availability_service = AvailabilityService()
+
+            # Check availability in external libraries
+            external_availability = availability_service.check_book_availability_flask(book.isbn)
+
+            # Check availability across different objects based on ISBN
+            local_library_network = Book.objects.filter(isbn=book.isbn)
+            if local_library_network is not None:
+                local_availability_data = [
+                        {
+                            'book_id': book.book_id,
+                            'library': book.library,
+                            'count_in_library': book.count_in_library
+                        } for book in local_library_network
+                ]
+
+            availability_data = {
+                'book_title': book.title,
+                'author': book.author,
+                'isbn': book.isbn,
+                'local_library_network_availability': local_availability_data,
+                'external_availability': external_availability,
             }
-        availability_data = {
-            'book_title': book.title,
-            'author': book.author,
-            'isbn': book.isbn,
-            'local_library_network_availability': local_availability_data,
-            'external_availability': external_availability,
-        }
-        return Response(availability_data)
+            return Response(availability_data)
+        except Exception as e:
+            logger.error(f"Error while checking external availability': {str(e)}")
+            raise ValidationError("An error occurred while checking internal \
+                                  and external availability")
 
     @action(detail=False, methods=['get'])
     def search_by_isbn(self, request):
+        """Search internally for a book based on ISBN.
+        """
         isbn = request.query_params.get('isbn', None)
-        if isbn is not None:
-            books = self.queryset.filter(isbn=isbn)
-            serializer = self.get_serializer(books, many=True)
-            return Response(serializer.data)
-        return Response({"error": "Please provide an ISBN"}, status=400)
+
+        if isbn is None:
+            return Response({"error": "Please provide correct ISBN"}, status=400)
+
+        books = self.queryset.filter(isbn=isbn)  # Already as str
+
+        if len(books) < 1:
+            return Response({"error": "No books found with provided ISBN"}, status=400)
+
+        serializer = self.get_serializer(books, many=True)
+        return Response(serializer.data)
 
 
 class ReturnBookView(generics.UpdateAPIView):

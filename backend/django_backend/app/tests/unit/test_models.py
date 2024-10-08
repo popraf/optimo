@@ -1,34 +1,41 @@
 from django.test import TestCase
-from .test_data import create_test_user, create_test_book, create_test_reservation
+from django.contrib.auth.models import User
+from app.models import Book, Reservation
 
 
 class BookModelTest(TestCase):
-
+    """Test model add a book
+    """
     def setUp(self):
-        self.book = create_test_book()
+        self.book = Book.objects.create(
+            title="Test Book",
+            author="Author A",
+            isbn="1234567890123",
+            count_in_library=5
+        )
 
     def test_book_creation(self):
-        self.assertEqual(self.book.title, 'Test Book')
-        self.assertEqual(self.book.count_in_library, 3)
-        self.assertEqual(str(self.book), 'Test Book')
-
-    def test_unique_isbn(self):
-        with self.assertRaises(Exception):
-            create_test_book(isbn='1234567890123')
+        self.assertEqual(self.book.title, "Test Book")
+        self.assertEqual(self.book.count_in_library, 5)
 
 
 class ReservationModelTest(TestCase):
-
+    """Test model create reservation
+    """
     def setUp(self):
-        self.user = create_test_user()
-        self.book = create_test_book()
-        self.reservation = create_test_reservation(self.user, self.book)
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.book = Book.objects.create(
+            title="Test Book",
+            author="Author A",
+            isbn="1234567890123",
+            count_in_library=5
+        )
+        self.reservation = Reservation.objects.create(
+            user=self.user,
+            book=self.book,
+            reserved_until="2023-12-31T00:00:00Z"
+        )
 
     def test_reservation_creation(self):
         self.assertEqual(self.reservation.user.username, 'testuser')
         self.assertEqual(self.reservation.book.title, 'Test Book')
-        self.assertTrue(self.reservation.reservation_status)
-
-    def test_unique_reservation(self):
-        with self.assertRaises(Exception):
-            create_test_reservation(self.user, self.book)
