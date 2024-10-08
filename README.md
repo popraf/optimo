@@ -81,6 +81,22 @@ The system consists of the following components:
         
         Dev containers are prepared for both Django and Flask applications, therefore please adhere to commonly known instructions. Both dev containers are available in `.devcontainer` folder.
 
+### Running Tests
+
+Once containers are built, please use following commands to run respective Flask and Django tests:
+    
+* Django
+    
+    ```
+    docker exec optimo-django-container python manage.py test -v 3
+    ```
+
+* Flask
+    
+    ```
+    docker exec optimo-flask-container pytest tests/unit/test_views.py -vv
+    ```
+
 ### API Endpoints
 
 #### Django Backend
