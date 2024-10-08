@@ -82,7 +82,7 @@ class ReservationSerializerTest(APITestCase):
         expected_data = {
             'reservation_id': reservation.reservation_id,
             'user': self.user.username,
-            'book': self.book.book_id,
+            'book_id': self.book.book_id,
             'reserved_at': reservation.reserved_at.isoformat().replace('+00:00', 'Z'),
             'reserved_until': reservation.reserved_until.isoformat().replace('+00:00', 'Z'),
             'reservation_status': reservation.reservation_status,
@@ -109,4 +109,4 @@ class ReservationSerializerTest(APITestCase):
         serializer = ReservationSerializer(data=self.reservation_data)
         serializer.context['request'] = self._get_mock_request(user=self.user)
         self.assertFalse(serializer.is_valid())
-        self.assertIn('book', serializer.errors)
+        self.assertIn('book_id', serializer.errors)

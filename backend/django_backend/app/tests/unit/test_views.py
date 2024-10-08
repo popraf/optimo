@@ -376,9 +376,10 @@ class ReservationAPITest(APITestCase):
         Test reserving a book that is available in the main library
         """
         self.client.force_authenticate(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
         url = reverse('reserve_book', args=[self.book_available.book_id])
         data = {
-            'book': self.book_available.book_id,
+            'book_id': self.book_available.book_id,
         }
         response = self.client.post(url, data, format='json')
         # response = self.client.post(url, format='json')
@@ -399,20 +400,21 @@ class ReservationAPITest(APITestCase):
             the main library but is available externally
         """
         self.client.force_authenticate(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
         url = reverse('reserve_book', args=[self.book_not_available.book_id])
 
         data = {
-            'book': self.book_not_available.book_id,
+            'book_id': self.book_not_available.book_id,
         }
-        mock_service_instance = mock_availability_service.return_value
+        mock_service = mock_availability_service.return_value
         mock_external_availability = {
             '3': {  # Simulating external book ID
                 'library': 'External Library',
                 'count_in_library': 2
             }
         }
-        mock_service_instance.check_book_availability_flask.return_value = mock_external_availability
-        mock_service_instance.reserve_book_external_api.return_value = True
+        mock_service.check_book_availability_flask.return_value = mock_external_availability
+        mock_service.reserve_book_external_api.return_value = True
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Reservation.objects.count(), 1)
@@ -423,8 +425,10 @@ class ReservationAPITest(APITestCase):
         self.assertEqual(reservation.reservation_library, 'External Library')
         self.book_not_available.refresh_from_db()
         self.assertEqual(self.book_not_available.count_in_library, 0)
-        mock_service_instance.check_book_availability_flask.assert_called_once_with(self.book_not_available.isbn)
-        mock_service_instance.reserve_book_external_api.assert_called_once_with('3')
+        mock_service.check_book_availability_flask.assert_called_once_with(
+            self.book_not_available.isbn
+            )
+        mock_service.reserve_book_external_api.assert_called_once_with('3', 'testtoken')
 
     @patch('app.views.AvailabilityService')
     def test_reserve_book_not_available_anywhere(self, mock_availability_service):
@@ -432,19 +436,22 @@ class ReservationAPITest(APITestCase):
         Test attempting to reserve a book that is not available in the main or external libraries
         """
         self.client.force_authenticate(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
         url = reverse('reserve_book', args=[self.book_not_available.book_id])
 
         data = {
-            'book': self.book_not_available.book_id,
+            'book_id': self.book_not_available.book_id,
         }
-        mock_service_instance = mock_availability_service.return_value
-        mock_service_instance.check_book_availability_flask.return_value = False
+        mock_service = mock_availability_service.return_value
+        mock_service.check_book_availability_flask.return_value = False
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('This book is not available', str(response.data[0]))
         self.assertEqual(Reservation.objects.count(), 0)
-        mock_service_instance.check_book_availability_flask.assert_called_once_with(self.book_not_available.isbn)
-        mock_service_instance.reserve_book_external_api.assert_not_called()
+        mock_service.check_book_availability_flask.assert_called_once_with(
+            self.book_not_available.isbn
+        )
+        mock_service.reserve_book_external_api.assert_not_called()
 
     def test_reserve_book_not_authenticated(self):
         """
@@ -452,7 +459,7 @@ class ReservationAPITest(APITestCase):
         """
         url = reverse('reserve_book', args=[self.book_available.book_id])
         data = {
-            'book': self.book_available.book_id,
+            'book_id': self.book_available.book_id,
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -463,10 +470,11 @@ class ReservationAPITest(APITestCase):
         Test attempting to reserve a book that does not exist
         """
         self.client.force_authenticate(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
         non_existent_book_id = 999
         url = reverse('reserve_book', args=[non_existent_book_id])
         data = {
-            'book': non_existent_book_id,
+            'book_id': non_existent_book_id,
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
