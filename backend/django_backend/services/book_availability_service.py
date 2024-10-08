@@ -75,7 +75,7 @@ class AvailabilityService:
             logger.error(f"Error calling external API in check_book_availability_flask: {str(e)}")
             return False
 
-    def reserve_book_external_api(self, pk):
+    def reserve_book_external_api(self, pk, token):
         """
         Calls Flask API to reserve a book in external library using a unique identifier.
 
@@ -87,7 +87,17 @@ class AvailabilityService:
         """
         request_flask_api_url = f"{self.base_flask_api_url}/book_reserved_external/{pk}"
         try:
-            response = self.session.get(request_flask_api_url, timeout=5)
+            if not token:
+                # Handle missing Authorization header
+                raise ValueError("Missing Authorization header")
+
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            }
+            session = self.session
+            session.headers.update(headers)
+            response = session.post(request_flask_api_url, json={'book_id': pk}, timeout=5)
             response.raise_for_status()
             data = response.json()
             return data.get('message', '').lower().endswith('reserved successfully')

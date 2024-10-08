@@ -128,9 +128,10 @@ The Django backend provides endpoints for managing users, books, and reservation
 
 * Reservation Management
     * Reserve a Book
-        * Endpoint: /api/reserve/< pk >
+        * Endpoint: /api/reserve/< pk >/
         * Method: POST
         * Description: Reserve a book, required JWT auth data in request.
+        * Query Params: book_id
 
     * Return a Book
         * Endpoint: /api/reservations/< pk >/return_book/

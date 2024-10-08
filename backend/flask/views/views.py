@@ -165,6 +165,13 @@ def reserve(pk):
         # Validate and load the request data
         reservation_data = reservation_schema.load(request.json)  # Data validation
 
+        if reservation_data.errors:
+            # Handle validation errors if there are any
+            current_app.logger.error('Validation error: %s', reservation_data.errors)
+            return jsonify({"error": "Validation error", "messages": reservation_data.errors}), 400
+
+        reservation_data = reservation_data.data
+
         # Get the Authorization header
         auth_header = request.headers.get('Authorization')
         if not auth_header:
@@ -174,7 +181,7 @@ def reserve(pk):
         jwt_token = auth_header.split(' ')[1]
         # encrypted_token = aes_encryption.encrypt_data(jwt_token)
 
-        reservation_url = '%s/api/reserve/' % Config.DJANGO_API_URL
+        reservation_url = '{}/api/reserve/{}/'.format(Config.DJANGO_API_URL, pk)
 
         headers = {
             'Content-Type': 'application/json',
@@ -204,11 +211,11 @@ def reserve(pk):
             error_details = response.json()
         except ValueError:
             error_details = {"detail": response.text}
-        return jsonify({'status': 'Failed to reserve via Django', 'error': error_details}), response.status_code
+        return jsonify({'status': 'HTTPError: Failed to reserve via Django', 'error': error_details}), response.status_code
 
     except requests.exceptions.RequestException as e:
         current_app.logger.error('Request exception: %s', str(e))
-        return jsonify({'status': 'Failed to reserve via Django', 'error': str(e)}), 500
+        return jsonify({'status': 'Request Exception: Failed to reserve via Django', 'error': str(e)}), 500
 
     except ValidationError as err:
         current_app.logger.error('Validation error: %s', err.messages)

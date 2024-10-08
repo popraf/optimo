@@ -14,12 +14,16 @@ class BookSerializer(serializers.ModelSerializer):
 
 class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
+    book_id = serializers.PrimaryKeyRelatedField(
+        queryset=Book.objects.all(),
+        source='book'
+    )
 
     class Meta:
         model = Reservation
         fields = ['reservation_id',
                   'user',
-                  'book',
+                  'book_id',
                   'reserved_at',
                   'reserved_until',
                   'reservation_status',

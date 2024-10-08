@@ -122,12 +122,26 @@ class ReserveBookView(generics.CreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def extract_jwt_token(self):
+        auth_header = self.request.META.get('HTTP_AUTHORIZATION', '')
+        if not auth_header:
+            raise ValueError("Missing Authorization header")
+
+        try:
+            prefix, token = auth_header.split(' ')
+            if prefix.lower() != 'bearer':
+                raise ValueError("Invalid Authorization header format")
+            return token
+        except ValueError:
+            raise ValueError("Invalid Authorization header format")
+
     def perform_create(self, serializer):
         book = serializer.validated_data['book']
         availability_service = AvailabilityService()
         logger.info(f"User is attempting to reserve book: {book.isbn}")
 
         try:
+            token = self.extract_jwt_token()
             # Apply certain logic: if book is not available in the main library,
             #   then check external ones, and if is available continue with respective library
             if book.count_in_library < 1:
@@ -150,7 +164,7 @@ class ReserveBookView(generics.CreateAPIView):
 
                 reservation_library = availability_details['library']
                 # Reserve book via Flask endpoint (count - 1)
-                availability_service.reserve_book_external_api(selected_book_external_pk)
+                availability_service.reserve_book_external_api(selected_book_external_pk, token)
                 is_external = True
 
             else:
