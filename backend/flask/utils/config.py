@@ -1,12 +1,12 @@
 import os
 import logging
 from dotenv import load_dotenv
-from utils.logging_handler import SQLAlchemyHandler
+from .logging_handler import SQLAlchemyHandler
 
 load_dotenv()
 
 
-class Config:
+class Config(object):
     FLASK_SECRET = os.getenv('FLASK_SECRET')
     DB_HOST = os.environ.get('DATABASE_HOST')
     DB_PORT = os.environ.get('DATABASE_PORT')
@@ -27,6 +27,18 @@ class Config:
         DB_PORT,
         DB_NAME
     )
+
+    @classmethod
+    def init_app(cls, app):
+        app.config.from_object(cls)
+        # Ensure all environment variables are set
+        for key in cls.__dict__:
+            if key.isupper() and getattr(cls, key) is None:
+                raise ValueError("Environment variable {} is not set".format(key))
+
+
+class DevConfig(Config):
+    FLASK_ENV = 'development'
 
 
 def log_config_handler(db, app):

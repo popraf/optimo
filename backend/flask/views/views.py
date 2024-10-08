@@ -1,26 +1,22 @@
 import requests
 import copy
-from flask import Blueprint, jsonify, request, current_app
-from marshmallow import Schema, fields, ValidationError
+from flask import jsonify, request, current_app
+from marshmallow import ValidationError
+from werkzeug.exceptions import BadRequest, Unauthorized
 from utils.aes_encryption import SimpleAES, encrypt_payload
+from requests.exceptions import HTTPError
+from utils.utils import error_response
+from . import library_manage_blueprint
+from services.services import (
+    reserve_book,
+    validate_reservation_data,
+    get_jwt_token,
+    make_reservation_request,
+    handle_successful_reservation,
+    reserve_book_external,
+)
+from services.auth_services import login_user
 from tests.mock_data import MOCK_BOOK_DATA
-from utils.config import Config
-
-
-library_manage_blueprint = Blueprint('reservations', __name__)
-
-
-class ReservationSchema(Schema):
-    book_id = fields.Integer(required=True)
-
-
-class LoginSchema(Schema):
-    username = fields.Str(required=True)
-    password = fields.Str(required=True)
-
-
-reservation_schema = ReservationSchema()
-login_schema = LoginSchema()
 
 
 @library_manage_blueprint.route('/health', methods=['GET'])
@@ -66,157 +62,45 @@ def get_book_details(pk):
 
 @library_manage_blueprint.route('/login', methods=['POST'])
 def login():
-    """Login to library endpoint
-    """
-    django_login_url = '{}/api/token/'.format(str(Config.DJANGO_API_URL))
+    """Login to library endpoint"""
     try:
-        results = login_schema.load(request.json)
-
-        if results.errors:
-            # Handle validation errors if there are any
-            current_app.logger.error('Validation error: %s', results.errors)
-            return jsonify({"error": "Validation error", "messages": results.errors}), 400
-
-        login_data = results.data
-        username = login_data.get('username')
-        password = login_data.get('password')
-
-        current_app.logger.info('Username: %s', username)
-        current_app.logger.info('Password: %s', password)
-
-        response = requests.post(
-            django_login_url,
-            json={
-                "username": username,
-                'password': password
-                }
-            )
-
-        if response.status_code not in (200, 201):
-            return jsonify({"error": "Invalid credentials", "details": response.text}), response.status_code
-
-        token_data = response.json()
-
-        return jsonify({
-            "message": "Login successful",
-            "access_token": token_data.get("access"),
-            "refresh_token": token_data.get("refresh")
-        }), 200
-
+        result = login_user(request.json)
+        return jsonify(result), 200
     except ValidationError as err:
-        current_app.logger.error('HTTP error occurred: %s', err)
-        return jsonify({"error": "Validation error", "messages": err.messages}), 400
+        return error_response(u"Validation error", 400, err.messages)
     except Exception as e:
-        current_app.logger.error('Request exception: %s', str(e))
-        return jsonify({"error": "An error occurred: {}".format(str(e))}), 500
+        current_app.logger.error(u'Login exception: %s', unicode(e))
+        return error_response(u"An error occurred during login", 500)
 
 
-@library_manage_blueprint.route('/book_reserved_external/<int:pk>', methods=['POST'])
-def book_reserved_external(pk):
-    """Endpoint to reserve a book in external library
-    """
-    django_verification_url = '{}/api/token/verify/'.format(str(Config.DJANGO_API_URL))
+@library_manage_blueprint.route('/reserve/<int:book_id>', methods=['POST'])
+def reserve(book_id):
+    """Endpoint to reserve a book via Django endpoint"""
     try:
-        results = reservation_schema.load(request.json)
-
-        if results.errors:
-            # Handle validation errors if there are any
-            current_app.logger.error('Validation error: %s', results.errors)
-            return jsonify({"error": "Validation error", "messages": results.errors}), 400
-
-        auth_header = request.headers.get('Authorization')
-
-        if not auth_header:
-            return jsonify({"error": "Missing Authorization header"}), 401
-
-        jwt_token = auth_header.split(' ')[1]
-
-        # Verify token in Django
-        verification_response = requests.post(
-            django_verification_url,
-            json={"token": jwt_token}
-        )
-
-        if verification_response.status_code != 200:
-            return jsonify({"error": "Invalid token"}), 403
-
-        # Reserve a book in external library (mock data)
-        book = MOCK_BOOK_DATA.get(pk)
-
-        if book['count_in_library'] < 1:
-            return jsonify({"error": "Book {} not available in external library".format(str(pk))}), 400
-
-        book['count_in_library'] -= 1
-        current_app.logger.info('Book %s reserved in external library', pk)
-        return jsonify({"message": "Book with id {} reserved successfully".format(str(pk))}), 200
+        result, status_code = reserve_book(book_id, request.json, request.headers)
+        return jsonify(result), status_code
+    except HTTPError as http_err:
+        response = http_err.response
+        if response.status_code == 400:
+            return BadRequest(response.text)
+        current_app.logger.error(u"HTTP error occurred for book %s: %s", book_id, unicode(http_err))
+        return error_response(u"An HTTP error occurred", response.status_code, response.text)
     except ValidationError as err:
-        current_app.logger.error('HTTP error occurred: %s', err)
-        return jsonify({"error": "Validation error", "messages": err.messages}), 400
+        return error_response(u"Validation error", 400, err.messages)
     except Exception as e:
-        current_app.logger.error('Request exception: %s', str(e))
-        return jsonify({"error": "An error occurred: {}".format(str(e))}), 500
+        current_app.logger.error(u'Reservation exception in /reserve for book %s: %s', book_id, unicode(e))
+        return error_response(u"An unexpected error occurred during reservation:", 500)
 
 
-@library_manage_blueprint.route('/reserve/<int:pk>', methods=['POST'])
-def reserve(pk):
-    """Endpoint to reserve a book via Django endpoint
-    """
+@library_manage_blueprint.route('/book_reserved_external/<int:book_id>', methods=['POST'])
+def book_reserved_external(book_id):
+    """Endpoint to reserve a book in external library"""
     try:
-        # Validate and load the request data
-        reservation_data = reservation_schema.load(request.json)  # Data validation
-
-        if reservation_data.errors:
-            # Handle validation errors if there are any
-            current_app.logger.error('Validation error: %s', reservation_data.errors)
-            return jsonify({"error": "Validation error", "messages": reservation_data.errors}), 400
-
-        reservation_data = reservation_data.data
-
-        # Get the Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return jsonify({"error": "Missing Authorization header"}), 401
-
-        # Extract and encrypt the JWT token
-        jwt_token = auth_header.split(' ')[1]
-        # encrypted_token = aes_encryption.encrypt_data(jwt_token)
-
-        reservation_url = '{}/api/reserve/{}/'.format(Config.DJANGO_API_URL, pk)
-
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % jwt_token
-        }
-
-        response = requests.post(
-            reservation_url,
-            json=reservation_data,
-            headers=headers,
-            timeout=5
-        )
-
-        response.raise_for_status()
-        current_app.logger.info('Reservation confirmed via Django: book_id %s', reservation_data)
-
-        try:
-            response_data = response.json()
-        except ValueError:
-            response_data = {"detail": response.text}
-
-        return jsonify({'status': 'Reservation confirmed via Django', 'details': response_data}), response.status_code
-
-    except requests.exceptions.HTTPError as http_err:
-        current_app.logger.error('HTTP error occurred: %s', http_err)
-        try:
-            error_details = response.json()
-        except ValueError:
-            error_details = {"detail": response.text}
-        return jsonify({'status': 'HTTPError: Failed to reserve via Django', 'error': error_details}), response.status_code
-
-    except requests.exceptions.RequestException as e:
-        current_app.logger.error('Request exception: %s', str(e))
-        return jsonify({'status': 'Request Exception: Failed to reserve via Django', 'error': str(e)}), 500
-
+        result = reserve_book_external(book_id, request.json, request.headers)
+        return jsonify(result), 200
     except ValidationError as err:
-        current_app.logger.error('Validation error: %s', err.messages)
-        return jsonify({"error": "Validation error", "messages": err.messages}), 400
+        return error_response(u"Validation error", 400, err.messages)
+    except Exception as e:
+        current_app.logger.error(u'External reservation exception in /book_reserved_external \
+                                 for book %s: %s', book_id, unicode(e))
+        return error_response(u"An error occurred during external reservation", 500)
