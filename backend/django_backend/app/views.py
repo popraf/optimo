@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from rest_framework import status, permissions, generics, mixins, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -33,19 +34,19 @@ class BookViewSet(mixins.ListModelMixin,
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'])
-    def check_availability(self, request, pk=None):
+    async def check_availability(self, request, pk=None):
         """To search for a book in external libraries, it must be defined by ORM
         for proper ISBN enumeration
         """
         try:
-            book = self.get_object()
+            book = await asyncio.to_thread(self.get_object)
             availability_service = AvailabilityService()
 
             # Check availability in external libraries
-            external_availability = availability_service.check_book_availability_flask(book.isbn)
+            external_availability = await availability_service.async_check_book_availability_flask(book.isbn)
 
             # Check availability across different objects based on ISBN
-            local_library_network = Book.objects.filter(isbn=book.isbn)
+            local_library_network = await asyncio.to_thread(Book.objects.filter, isbn=book.isbn)
             if local_library_network is not None:
                 local_availability_data = [
                         {

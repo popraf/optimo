@@ -1,9 +1,12 @@
 import os
 import requests
 import logging
+import asyncio
+import aiohttp
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from urllib3.util.retry import Retry
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ class AvailabilityService:
         - dict: A dictionary containing libraries where the book
             is available and the count in each library.
           Example: { 'library_name': {'library': 'Library A', 'count_in_library': 5} }
-        - bool: False if the request fails.
+          Returns empty dict in case of no books available
         """
         request_flask_api_url = f"{self.base_flask_api_url}/books/{isbn}/availability"
         try:
@@ -73,7 +76,36 @@ class AvailabilityService:
             return data
         except RequestException as e:
             logger.error(f"Error calling external API in check_book_availability_flask: {str(e)}")
-            return False
+            raise
+
+    async def async_check_book_availability_flask(self, isbn):
+        """
+        Asynchronously calls Flask API to check book availability in other libraries based on ISBN.
+        Returns only libraries where book is available.
+
+        Parameters:
+        - isbn (str): The ISBN of the book to check availability for.
+
+        Returns:
+        - dict: A dictionary containing libraries where the book
+          is available and the count in each library.
+        """
+        request_flask_api_url = f"{self.base_flask_api_url}/books/{isbn}/availability"
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(request_flask_api_url, timeout=5) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    data = {
+                        key: {
+                            'library': value['library'],
+                            'count_in_library': value['count_in_library']
+                        } for key, value in data.items()
+                    }
+                    return data
+            except aiohttp.ClientError as e:
+                logger.error(f"Error calling external API in async_check_book_availability_flask: {str(e)}")
+                raise
 
     def reserve_book_external_api(self, pk, token):
         """
@@ -103,7 +135,7 @@ class AvailabilityService:
             return data.get('message', '').lower().endswith('reserved successfully')
         except RequestException as e:
             logger.error(f"Error calling external API in reserve_book_external_api: {str(e)}")
-            return False
+            raise
         except (KeyError, ValueError) as e:
             logger.error(f"Unexpected response format in reserve_book_external_api: {str(e)}")
-            return False
+            raise
