@@ -1,7 +1,7 @@
 import requests
 from flask import current_app, jsonify
 from marshmallow import ValidationError
-from werkzeug.exceptions import BadRequest, Unauthorized, InternalServerError
+from werkzeug.exceptions import Unauthorized
 from models.schemas import reservation_schema
 from tests.mock_data import MOCK_BOOK_DATA
 

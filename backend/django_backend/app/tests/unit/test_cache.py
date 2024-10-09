@@ -62,10 +62,14 @@ class BookListCacheTest(TestCase):
 
         cached_books = cache.get('books_list')
         self.assertIsNotNone(cached_books, "Cache should be repopulated after the request.")
-        self.assertEqual(cached_books, data3, "Cached data should match the updated response data.")
+        self.assertEqual(cached_books,
+                         data3,
+                         "Cached data should match the updated response data.")
 
         self.assertEqual(len(data3), 3, "The data should include all three books.")
         titles = [book['title'] for book in data3]
         self.assertIn('Book 3', titles, "The new book should be in the data.")
 
-        self.assertNotEqual(data3, data, "The data should be updated and not equal to the previous data.")
+        self.assertNotEqual(data3,
+                            data,
+                            "The data should be updated and not equal to the previous data.")

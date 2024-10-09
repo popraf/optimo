@@ -1,22 +1,19 @@
 import requests
 import copy
-from flask import jsonify, request, current_app
+from flask import jsonify, request, current_app, Blueprint
 from marshmallow import ValidationError
 from werkzeug.exceptions import BadRequest, Unauthorized
-from utils.aes_encryption import SimpleAES, encrypt_payload
+# from utils.aes_encryption import SimpleAES, encrypt_payload
 from requests.exceptions import HTTPError
 from utils.utils import error_response
-from . import library_manage_blueprint
 from services.services import (
     reserve_book,
-    validate_reservation_data,
-    get_jwt_token,
-    make_reservation_request,
-    handle_successful_reservation,
     reserve_book_external,
 )
 from services.auth_services import login_user
 from tests.mock_data import MOCK_BOOK_DATA
+
+library_manage_blueprint = Blueprint('library_manage', __name__)
 
 
 @library_manage_blueprint.route('/health', methods=['GET'])
@@ -81,8 +78,13 @@ def reserve(book_id):
         return jsonify(result), status_code
     except HTTPError as http_err:
         response = http_err.response
+
         if response.status_code == 400:
             return BadRequest(response.text)
+
+        if response.status_code == 401:
+            return Unauthorized(response.text)
+
         current_app.logger.error(u"HTTP error occurred for book %s: %s", book_id, unicode(http_err))
         return error_response(u"An HTTP error occurred", response.status_code, response.text)
     except ValidationError as err:
