@@ -6,8 +6,8 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
-
-from .models import Reservation
+from django.template import TemplateDoesNotExist
+from app.models import Reservation
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ def send_notification(user_id, reservation_id):
     Sending emails to users e.g. about upcoming book return deadline
     """
     try:
-        user = User.objects.get(pk=user_id)
-        reservation = Reservation.objects.get(pk=reservation_id)
+        user = User.objects.get(id=user_id)
+        reservation = Reservation.objects.get(reservation_id=reservation_id)
         subject = 'Library Reservation Reminder'
         email_from = settings.DEFAULT_FROM_EMAIL
         recipient_list = [user.email]
@@ -27,15 +27,23 @@ def send_notification(user_id, reservation_id):
             'user': user,
             'reservation': reservation,
         }
-        message = render_to_string('email/reminder_email.txt', context)
+        try:
+            message = render_to_string('email/reminder_email.txt', context)
+        except TemplateDoesNotExist as e:
+            logger.error('Template email/reminder_email.txt does not exist')
+            raise TemplateDoesNotExist(f'Template {str(e)} does not exist')
+
         send_mail(subject, message, email_from, recipient_list)
-        logger.info('Email sent to user %s', user.username)
+        logger.info(f'Email sent to user {user.username}')
     except User.DoesNotExist:
-        logger.error('User with id %s does not exist', user_id)
+        logger.error(f'User with id {user_id} does not exist')
+        raise
     except Reservation.DoesNotExist:
-        logger.error('Reservation with id %s does not exist', reservation_id)
+        logger.error(f'Reservation with id {reservation_id} does not exist')
+        raise
     except Exception as e:
-        logger.exception('Error sending email to user %s: %s', user_id, e)
+        logger.error(f'Error sending email to user {user_id}: {str(e)}')
+        raise
 
 
 @shared_task
@@ -44,15 +52,14 @@ def check_reservation_deadlines():
     Periodic task to check for reservations that are about to expire and notify users
     """
     now = timezone.now()
-    reminder_time = now + timedelta(days=3)  # 3 days before the return deadline
+    reminder_time = now + timedelta(days=3)
     reservations = Reservation.objects.filter(
-        reservation_status=False,
+        reservation_status=True,
         reserved_until__gte=now,
         reserved_until__lte=reminder_time
     )
     for reservation in reservations:
         user_id = reservation.user.id
-        reservation_id = reservation.id
+        reservation_id = reservation.reservation_id
         send_notification.delay(user_id, reservation_id)
-        logger.info('Reminder scheduled for user %s about \
-                    reservation %s', reservation.user.username, reservation.id)
+        logger.info(f'Reminder scheduled for user {reservation.user.username} about reservation {reservation_id}')
