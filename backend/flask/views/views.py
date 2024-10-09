@@ -11,7 +11,7 @@ from services.services import (
     reserve_book_external,
 )
 from services.auth_services import login_user
-from tests.mock_data import MOCK_BOOK_DATA
+from test.mock_data import MOCK_BOOK_DATA
 
 library_manage_blueprint = Blueprint('library_manage', __name__)
 

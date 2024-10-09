@@ -4,7 +4,7 @@ from flask import Flask
 from mock import patch, MagicMock
 from views.views import library_manage_blueprint
 from utils.config import DevConfig
-from tests.mock_data import MOCK_BOOK_DATA
+from test.mock_data import MOCK_BOOK_DATA
 from requests.exceptions import HTTPError
 from werkzeug.exceptions import Unauthorized, BadRequest
 from marshmallow import ValidationError

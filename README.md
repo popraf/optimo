@@ -27,6 +27,7 @@ Core features include:
 * Health Checks: Monitor the health status of both Django and Flask services.
 * Robust Logging: Logs are stored in a MySQL database for easy monitoring and analysis.
 * Resilience: Implements retry mechanisms for external API communications to enhance reliability.
+* Caching, such as caching books list view
 
 ### Architecture
 The system consists of the following components:
@@ -94,7 +95,7 @@ Once containers are built, please use following commands to run respective Flask
 * Flask
     
     ```
-    docker exec optimo-flask-container pytest tests/unit/test_views.py -vv
+    docker exec optimo-flask-container pytest -vv
     ```
 
 ### API Endpoints
@@ -227,4 +228,3 @@ The Flask API handles status checks for book availability.
 * Flask Logs: Redirected from log files to the MySQL database using a custom logging handler implemented with SQLAlchemy.
 #### Viewing Logs
 Access the logs directly from the MySQL database. Use a MySQL client or admin tool to query the logs_db (or your configured database) and inspect the log table for detailed log entries.
-
