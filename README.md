@@ -233,3 +233,9 @@ The Flask API handles status checks for book availability.
 * Flask Logs: Redirected from log files to the MySQL database using a custom logging handler implemented with SQLAlchemy.
 #### Viewing Logs
 Access the logs directly from the MySQL database. Use a MySQL client or admin tool to query the logs_db (or your configured database) and inspect the log table for detailed log entries.
+### Notifications
+* Notification emails are set utilize templates/email/reminder_email.txt
+* Notifications are sent 3 days before the deadline to return a book to users
+
+Example notification using the template:
+![notification](https://github.com/user-attachments/assets/629c4e91-db7b-4272-b507-61a112b27b1a)
