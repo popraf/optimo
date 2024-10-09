@@ -242,7 +242,7 @@ The Flask API handles status checks for book availability.
         ```
 
 ### API Documentation (Swagger)
-* Django: The API documentation is available via Swagger UI, ReDoc and yml (drf-spectacular):
+* Django: The API documentation is available via Swagger UI, ReDoc and yml (drf-spectacular)
     * Swagger UI: `/api/schema/swagger-ui/`
     * ReDoc: `/api/schema/redoc/`
     * schema.yml: `/api/schema/`
