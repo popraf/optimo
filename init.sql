@@ -1,9 +1,9 @@
 GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES; -- run to apply changes
 
-CREATE DATABASE IF NOT EXISTS test_optimo_mysql_db;
-GRANT ALL PRIVILEGES ON test_optimo_mysql_db.* TO 'db_user'@'%' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
+-- CREATE DATABASE IF NOT EXISTS test_optimo_mysql_db;
+-- GRANT ALL PRIVILEGES ON test_optimo_mysql_db.* TO 'db_user'@'%' WITH GRANT OPTION;
+-- FLUSH PRIVILEGES;
 
 USE optimo_mysql_db;
 
