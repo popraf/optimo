@@ -16,8 +16,12 @@ class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
     book_id = serializers.PrimaryKeyRelatedField(
         queryset=Book.objects.all(),
-        source='book'
-    )
+        source='book',
+        error_messages={
+            'required': 'Book ID is required',
+            'does_not_exist': 'Please provide correct book ID',
+            }
+            )
 
     class Meta:
         model = Reservation

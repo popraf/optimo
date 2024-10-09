@@ -12,17 +12,74 @@ from services.services import (
 )
 from services.auth_services import login_user
 from test.mock_data import MOCK_BOOK_DATA
+from flasgger import swag_from
 
 library_manage_blueprint = Blueprint('library_manage', __name__)
 
 
 @library_manage_blueprint.route('/health', methods=['GET'])
+@swag_from({
+    'responses': {
+        200: {
+            'description': 'Health status of the API',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'status': {
+                        'type': 'string',
+                        'example': 'healthy'
+                    }
+                }
+            }
+        }
+    }
+})
 def health_check():
     current_app.logger.info('Health check')
     return jsonify({"status": "healthy"}), 200
 
 
 @library_manage_blueprint.route('/books/<isbn>/availability', methods=['GET'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'isbn',
+            'in': 'path',
+            'type': 'string',
+            'required': True,
+            'description': 'The ISBN of the book to check availability'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Book availability information',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'pk': {
+                        'type': 'object',
+                        'properties': {
+                            'author': {'type': 'string'},
+                            'count_in_library': {'type': 'integer'},
+                            'isbn': {'type': 'string'},
+                            'library': {'type': 'string'},
+                            'title': {'type': 'string'}
+                        }
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Not found books based on ISBN',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+})
 def check_availability(isbn):
     """
     Endpoint to check book availability in other libraries.
@@ -41,6 +98,41 @@ def check_availability(isbn):
 
 
 @library_manage_blueprint.route('/books/<int:pk>/details', methods=['GET'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'pk',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'The primary key (PK) of the book to get details'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Details of the book',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'title': {'type': 'string'},
+                    'author': {'type': 'string'},
+                    'isbn': {'type': 'string'},
+                    'library': {'type': 'string'},
+                    'count_in_library': {'type': 'integer'},
+                }
+            }
+        },
+        404: {
+            'description': 'Book not found',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
+                }
+            }
+        }
+    }
+})
 def get_book_details(pk):
     """
     Endpoint to get details about a book.
@@ -58,6 +150,42 @@ def get_book_details(pk):
 
 
 @library_manage_blueprint.route('/login', methods=['POST'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'username': {'type': 'string'},
+                    'password': {'type': 'string'}
+                },
+                'required': ['username', 'password']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Successful login',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'access_token': {'type': 'string'},
+                    'refresh_token': {'type': 'string'},
+                    'message': {'type': 'string'}
+                },
+            }
+        },
+        400: {
+            'description': 'Validation error'
+        },
+        500: {
+            'description': 'An error occurred during login'
+        }
+    }
+})
 def login():
     """Login to library endpoint"""
     try:
@@ -75,6 +203,33 @@ def login():
 
 
 @library_manage_blueprint.route('/reserve', methods=['POST'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'book_id': {'type': 'integer'},
+                },
+                'required': ['book_id']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Book reserved successfully'
+        },
+        400: {
+            'description': 'Validation error'
+        },
+        500: {
+            'description': 'An unexpected error occurred during reservation'
+        }
+    }
+})
 def reserve():
     """Endpoint to reserve a book via Django endpoint"""
     try:
@@ -101,6 +256,33 @@ def reserve():
 
 
 @library_manage_blueprint.route('/book_reserved_external', methods=['POST'])
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'book_id': {'type': 'integer'},
+                },
+                'required': ['book_id']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Book reserved successfully in external library'
+        },
+        400: {
+            'description': 'Validation error'
+        },
+        500: {
+            'description': 'An error occurred during external reservation'
+        }
+    }
+})
 def book_reserved_external():
     """Endpoint to reserve a book in external library
     """

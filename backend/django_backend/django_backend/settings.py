@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_db_logger',
     'django_celery_beat',
+    'drf_spectacular',
 
     'app',
 ]
@@ -110,10 +111,13 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    ),
+        ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+        ),
+    'DEFAULT_SCHEMA_CLASS': (
+        'drf_spectacular.openapi.AutoSchema'
+        ),
 }
 
 SIMPLE_JWT = {
@@ -216,3 +220,11 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # your email password
 EMAIL_USE_TLS = True  # Use TLS if your email server supports it
 # EMAIL_USE_SSL = True  # Use SSL if needed
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Library Management Simple API',
+    'DESCRIPTION': 'API for library management system',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OTHER SETTINGS
+}

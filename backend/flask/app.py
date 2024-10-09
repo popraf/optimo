@@ -3,11 +3,13 @@ from flask_sqlalchemy import SQLAlchemy
 from utils.db_init import initialize_database
 from utils.config import Config, log_config_handler
 from views.views import library_manage_blueprint
+from flasgger import Swagger
 
 
 # Factory function
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
+    swagger = Swagger(app)
     app.config.from_object(config_class)
     config_class.init_app(app)
 

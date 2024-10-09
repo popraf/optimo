@@ -108,7 +108,7 @@ Once containers are built, please use following commands to run respective Flask
 The Django backend provides endpoints for managing users, books, and reservations.
 
 * User Registration Endpoint
-    * Endpoint: /api/register/
+    * Endpoint: `/api/register/`
     * Method: POST
     * Description: Register a new user.
     * Payload:
@@ -121,55 +121,68 @@ The Django backend provides endpoints for managing users, books, and reservation
         ```
 
 * Check Book Availability by Book PK
-    * Endpoint: /api/books/< pk:int >/check_availability
+    * Endpoint: `/api/books/<pk:int>/check_availability`
     * Method: GET
     * Description: Check availability of a book across internal and external libraries by PK from main system.
 
 * Search Book by ISBN
-    * Endpoint: /api/books/search_by_isbn/?isbn=< isbn >
+    * Endpoint: `/api/books/search_by_isbn/?isbn=<isbn:str>`
     * Method: GET
     * Description: Check availability of a book in main system using its ISBN.
     * Query Params: isbn: str
 
 * Book Management
     * List Books
-        * Endpoint: /api/books/
+        * Endpoint: `/api/books/`
         * Method: GET
         * Description: Retrieve a list of all books.
     * Retrieve Book Details
-        * Endpoint: /api/books/< pk >/details
+        * Endpoint: `/api/books/<pk:int>/details`
         * Method: GET
-        * Description: Retrieve details of a specific book, required JWT auth data in request.
+        * Description: Retrieve details of a specific book.
+    * Manage Books
+        * Endpoint: `/api/books/manage/`
+        * Method: GET, PUT, PATCH and DELETE 
+        * Headers:
+            * Authorization: Bearer `<JWT_TOKEN>`
+            * Content-Type: application/json
+        * Description: Retrieve details of a specific book, requires JWT auth data in request.
         * Create, Update, Delete Books: Restricted to admin users.
 
 * User Login
-    * Endpoint: /api/login
+    * Endpoint: `/api/login`
     * Method: POST
     * Description: Login to the library system. This will authenticate the user and return a JWT token for further API interactions.
 
 * Reservation Management
     * Reserve a Book
-        * Endpoint: /api/reserve/
+        * Endpoint: `/api/reserve/`
         * Method: POST
         * Description: Reserve a book, required JWT auth data in request.
+        * Headers:
+            * Authorization: Bearer `<JWT_TOKEN>`
+            * Content-Type: application/json
         * Payload: book_id: int
 
     * Return a Book
-        * Endpoint: /api/return/
+        * Endpoint: `/api/return/`
         * Method: POST
         * Description: Return a reserved book, required JWT auth data in request.
+        * Headers:
+            * Authorization: Bearer `<JWT_TOKEN>`
+            * Content-Type: application/json
         * Payload: reservation_id: int
 
 #### Flask API
 The Flask API handles status checks for book availability.
 
 * Health Check
-    * Endpoint: /health
+    * Endpoint: `/health`
     * Method: GET
     * Description: Check if the Flask service is running.
 
 * Check Book Availability
-    * Endpoint: /books/<isbn>/availability
+    * Endpoint: `/books/<isbn>/availability`
     * Method: GET
     * Description: Retrieve book available across different external libraries. Currently works only on mock data.
     * Response:
@@ -181,7 +194,7 @@ The Flask API handles status checks for book availability.
         ```
 
 * Check Book Details
-    * Endpoint: /books/<int:pk>/details
+    * Endpoint: `/books/<int:pk>/details`
     * Method: GET
     * Description: Retrieve details of a book from external library. Currently works only on mock data.
     * Response:
@@ -196,16 +209,16 @@ The Flask API handles status checks for book availability.
         ```
 
 * User Login
-    * Endpoint: /login
+    * Endpoint: `/login`
     * Method: POST
     * Description: User login, returns refresh and access tokens provided by Django.
 
 * Reserve a Book via Flask
-    * Endpoint: /reserve
+    * Endpoint: `/reserve`
     * Method: POST
     * Description: Reserve a book by communicating with the Django backend.
     * Headers:
-        * Authorization: Bearer <JWT_TOKEN>
+        * Authorization: Bearer `<JWT_TOKEN>`
         * Content-Type: application/json
     * Payload: book_id: int
         ```
@@ -215,11 +228,11 @@ The Flask API handles status checks for book availability.
         ```
 
 * Reserve a Book via Flask
-    * Endpoint: /book_reserved_external/<int:pk>
+    * Endpoint: `/book_reserved_external/<int:pk>`
     * Method: POST
     * Description: Reserve a book in external library.
     * Headers:
-        * Authorization: Bearer <JWT_TOKEN>
+        * Authorization: Bearer `<JWT_TOKEN>`
         * Content-Type: application/json
     * Payload: book_id: int
         ```
@@ -228,6 +241,13 @@ The Flask API handles status checks for book availability.
         }
         ```
 
+### API Documentation (Swagger)
+* Django: The API documentation is available via Swagger UI, ReDoc and yml (drf-spectacular):
+    * Swagger UI: `/api/schema/swagger-ui/`
+    * ReDoc: `/api/schema/redoc/`
+    * schema.yml: `/api/schema/`
+* Flask: The API documentation is available via Flasgger
+    * Flasgger: `/apidocs/`
 ### Logging
 * Django Logs: Managed by Django's logging framework and stored in the MySQL database.
 * Flask Logs: Redirected from log files to the MySQL database using a custom logging handler implemented with SQLAlchemy.

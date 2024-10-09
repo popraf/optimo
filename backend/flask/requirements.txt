@@ -38,3 +38,4 @@ mock==3.0.5
 marshmallow==2.21.0
 pycryptodome==3.7.0
 mock==3.0.5
+flasgger==0.8.3

@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.serializers import ValidationError
 from django.contrib.auth.models import User
 from services.book_availability_service import AvailabilityService
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 from app.models import Book, Reservation
 from app.utils import cache_api_view
 from app.serializers import (
@@ -28,26 +30,56 @@ class BookViewSet(mixins.ListModelMixin,
     serializer_class = BookSerializer
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        description="List all books. This list is cached, invalidation is supported by signals",
+        responses={200: BookSerializer(many=True)}
+    )
     @cache_api_view('books_list', 60 * 5)
     def list(self, request, *args, **kwargs):
         """List all books. This list is cached, invalidation is also supported by signals"""
         return super().list(request, *args, **kwargs)
 
+    @extend_schema(
+        description="Check availability of a book in internal and external libraries",
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Successful Response',
+                value={
+                    'book_title': 'Sample Book',
+                    'author': 'John Doe',
+                    'isbn': '1234567890',
+                    'local_library_network_availability': [
+                        {'book_id': 1, 'library': 'Main Library', 'count_in_library': 2},
+                        {'book_id': 2, 'library': 'Main Library', 'count_in_library': 3}
+                    ],
+                    'external_availability': {
+                        1: {'count_in_library': 1, 'library': 'External Library A'},
+                        4: {'count_in_library': 3, 'library': 'External Library B'}
+                        }
+                }
+            )
+        ]
+    )
     @action(detail=True, methods=['get'])
-    async def check_availability(self, request, pk=None):
+    def check_availability(self, request, pk=None):
         """To search for a book in external libraries, it must be defined by ORM
         for proper ISBN enumeration
         """
         try:
-            book = await asyncio.to_thread(self.get_object)
+            # book = await asyncio.to_thread(self.get_object)
+            book = self.get_object()
             availability_service = AvailabilityService()
 
             # Check availability in external libraries
-            external_availability = await availability_service.async_check_book_availability_flask(book.isbn)
+            external_availability = availability_service.check_book_availability_flask(book.isbn)
 
             # Check availability across different objects based on ISBN
-            local_library_network = await asyncio.to_thread(Book.objects.filter, isbn=book.isbn)
-            if local_library_network is not None:
+            local_library_network = Book.objects.filter(isbn=book.isbn)
+            if local_library_network:
                 local_availability_data = [
                         {
                             'book_id': book.book_id,
@@ -66,9 +98,19 @@ class BookViewSet(mixins.ListModelMixin,
             return Response(availability_data)
         except Exception as e:
             logger.error(f"Error while checking external availability': {str(e)}")
-            raise ValidationError("An error occurred while checking internal \
-                                  and external availability")
+            raise ValidationError(
+                "An error occurred while checking internal and external availability")
 
+    @extend_schema(
+        description="Search for a book by ISBN",
+        parameters=[
+            OpenApiParameter(name='isbn', description='ISBN of the book', required=True, type=str)
+        ],
+        responses={
+            200: BookSerializer(many=True),
+            400: OpenApiTypes.OBJECT
+        }
+    )
     @action(detail=False, methods=['get'])
     def search_by_isbn(self, request):
         """Search internally for a book based on ISBN.
@@ -92,6 +134,20 @@ class ReturnBookView(generics.UpdateAPIView):
     serializer_class = ReturnBookSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        description="Return a book",
+        request=ReturnBookSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Successful Response',
+                value={'status': 'Book returned successfully'}
+            )
+        ]
+    )
     def update(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -110,15 +166,41 @@ class ReturnBookView(generics.UpdateAPIView):
         serializer.update(instance=instance, validated_data=serializer.validated_data)
 
 
-class BookListCreateView(generics.ListCreateAPIView):
+class BookListCreateView(generics.RetrieveUpdateDestroyAPIView,
+                         generics.CreateAPIView):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
     permission_classes = [permissions.IsAdminUser]
+
+    @extend_schema(
+        description="List all books or create a new book",
+        responses={
+            200: BookSerializer(many=True),
+            201: BookSerializer,
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        description="Create a new book",
+        request=BookSerializer,
+        responses={201: BookSerializer}
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class UserReservationListView(generics.ListAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        description="List all reservations for the current user",
+        responses={200: ReservationSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         return Reservation.objects.filter(user=self.request.user)
@@ -128,6 +210,17 @@ class ReserveBookView(generics.CreateAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        description="Reserve a book",
+        request=ReservationSerializer,
+        responses={
+            201: ReservationSerializer,
+            400: OpenApiTypes.OBJECT
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
     def extract_jwt_token(self):
         auth_header = self.request.META.get('HTTP_AUTHORIZATION', '')
@@ -204,6 +297,20 @@ class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        description="Register a new user",
+        request=UserRegistrationSerializer,
+        responses={
+            201: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT
+        },
+        examples=[
+            OpenApiExample(
+                'Successful Response',
+                value={'status': 'User registered successfully'}
+            )
+        ]
+    )
     def create(self, request, *args, **kwargs):
         logger.info("User registration attempt")
         serializer = self.get_serializer(data=request.data)
