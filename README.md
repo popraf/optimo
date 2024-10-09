@@ -19,6 +19,10 @@ The aplication also features Django Celery Beat and Redis for notification sendi
 
 * Reservation via Flask API: Users can reserve a book using Flask `/reserve` endpoint. The endpoint reserves a book by calling Django's endpoint, therefore the core reservation logic should be maintained only in Django.
 
+* Currently, once the book is reserved, it is reserved for one month.
+
+* Notifications via Email are being sent once deadline to return the book is approaching (currently 3 days).
+
 ### Features
 Core features include:
 * Book Management: CRUD operations for managing books in the library.
@@ -125,7 +129,7 @@ The Django backend provides endpoints for managing users, books, and reservation
     * Endpoint: /api/books/search_by_isbn/?isbn=< isbn >
     * Method: GET
     * Description: Check availability of a book in main system using its ISBN.
-    * Query Params: isbn
+    * Query Params: isbn: str
 
 * Book Management
     * List Books
@@ -145,15 +149,16 @@ The Django backend provides endpoints for managing users, books, and reservation
 
 * Reservation Management
     * Reserve a Book
-        * Endpoint: /api/reserve/< pk >/
+        * Endpoint: /api/reserve/
         * Method: POST
         * Description: Reserve a book, required JWT auth data in request.
-        * Query Params: book_id
+        * Payload: book_id: int
 
     * Return a Book
-        * Endpoint: /api/reservations/< pk >/return_book/
+        * Endpoint: /api/return/
         * Method: POST
         * Description: Return a reserved book, required JWT auth data in request.
+        * Payload: reservation_id: int
 
 #### Flask API
 The Flask API handles status checks for book availability.
@@ -202,7 +207,7 @@ The Flask API handles status checks for book availability.
     * Headers:
         * Authorization: Bearer <JWT_TOKEN>
         * Content-Type: application/json
-    * Payload:
+    * Payload: book_id: int
         ```
         {
             "book_id": 1,
@@ -216,7 +221,7 @@ The Flask API handles status checks for book availability.
     * Headers:
         * Authorization: Bearer <JWT_TOKEN>
         * Content-Type: application/json
-    * Payload:
+    * Payload: book_id: int
         ```
         {
             "book_id": 1,

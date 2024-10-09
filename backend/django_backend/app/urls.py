@@ -20,9 +20,9 @@ urlpatterns = [
     path('reservations/', UserReservationListView.as_view(), name='user_reservations'),
 
     # Reserve a book (User only)
-    path('reserve/<int:book_id>/', ReserveBookView.as_view(), name='reserve_book'),
+    path('reserve/', ReserveBookView.as_view(), name='reserve_book'),
 
     # Return a book
-    path('return/<int:book_id>/', ReturnBookView.as_view(), name='return_book'),
+    path('return/', ReturnBookView.as_view(), name='return_book'),
     ]
 urlpatterns += router.urls

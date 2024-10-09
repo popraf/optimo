@@ -90,7 +90,7 @@ def test_reserve_success(mock_reserve_book, client):
     reservation_data = {
         "user_id": 123
     }
-    response = client.post('/reserve/{}'.format(book_id),
+    response = client.post('/reserve',
                            data=json.dumps(reservation_data),
                            content_type='application/json'
                            )
@@ -105,7 +105,7 @@ def test_reserve_unauthorized(mock_reserve_book, client):
     reservation_data = {
         "user_id": 123
     }
-    response = client.post('/reserve/{}'.format(book_id),
+    response = client.post('/reserve',
                            data=json.dumps(reservation_data),
                            content_type='application/json')
     assert response.status_code == 401
@@ -119,7 +119,7 @@ def test_book_reserved_external_success(mock_reserve_book_external, client):
     reservation_data = {
         "user_id": 456
     }
-    response = client.post('/book_reserved_external/{}'.format(book_id),
+    response = client.post('/book_reserved_external',
                            data=json.dumps(reservation_data),
                            content_type='application/json')
     assert response.status_code == 200
@@ -130,7 +130,7 @@ def test_book_reserved_external_validation_error(client):
     book_id = 3
     reservation_data = {}
     with patch('views.views.reserve_book_external', side_effect=ValidationError('Invalid data')):
-        response = client.post('/book_reserved_external/{}'.format(book_id),
+        response = client.post('/book_reserved_external',
                                data=json.dumps(reservation_data),
                                content_type='application/json')
         assert response.status_code == 400

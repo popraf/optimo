@@ -8,7 +8,12 @@ def login_user(login_data):
     """Authenticate user and return tokens"""
     django_login_url = u'{}/api/token/'.format(current_app.config['DJANGO_API_URL'])
     try:
-        data = login_schema.load(login_data)
+        result = login_schema.load(login_data)
+
+        if result.errors:
+            raise ValidationError(unicode(result.errors))
+
+        data = result.data
         username = data.get('username')
         password = data.get('password')
 
@@ -30,9 +35,7 @@ def login_user(login_data):
             "access_token": token_data.get("access"),
             "refresh_token": token_data.get("refresh")
         }
-
     except ValidationError as err:
-        # Re-raise validation errors to be handled by the calling function
         raise err
     except requests.exceptions.RequestException as e:
         # Handle network-related errors

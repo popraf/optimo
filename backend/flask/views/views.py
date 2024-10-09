@@ -63,18 +63,22 @@ def login():
     try:
         result = login_user(request.json)
         return jsonify(result), 200
+    except HTTPError as http_err:
+        response = http_err.response
+        return BadRequest(response.text)
     except ValidationError as err:
+        current_app.logger.info('Login ValidationError: {}'.format(unicode(err)))
         return error_response(u"Validation error", 400, err.messages)
     except Exception as e:
         current_app.logger.error(u'Login exception: %s', unicode(e))
-        return error_response(u"An error occurred during login", 500)
+        return error_response(u"An error occurred during login", 500, e.message)
 
 
-@library_manage_blueprint.route('/reserve/<int:book_id>', methods=['POST'])
-def reserve(book_id):
+@library_manage_blueprint.route('/reserve', methods=['POST'])
+def reserve():
     """Endpoint to reserve a book via Django endpoint"""
     try:
-        result, status_code = reserve_book(book_id, request.json, request.headers)
+        result, status_code = reserve_book(request.json, request.headers)
         return jsonify(result), status_code
     except HTTPError as http_err:
         response = http_err.response
@@ -85,24 +89,31 @@ def reserve(book_id):
         if response.status_code == 401:
             return Unauthorized(response.text)
 
-        current_app.logger.error(u"HTTP error occurred for book %s: %s", book_id, unicode(http_err))
+        current_app.logger.error(u"HTTP error occurred for request %s: %s", request.json, unicode(http_err))
         return error_response(u"An HTTP error occurred", response.status_code, response.text)
-    except ValidationError as err:
-        return error_response(u"Validation error", 400, err.messages)
+    except ValidationError as e:
+        return error_response(u"Validation error", 400, e.messages)
+    except Unauthorized as e:
+        return error_response('Unauthorized', 400, e.message)
     except Exception as e:
-        current_app.logger.error(u'Reservation exception in /reserve for book %s: %s', book_id, unicode(e))
+        current_app.logger.error(u'Reservation exception in /reserve for request %s: %s', request.json, unicode(e))
         return error_response(u"An unexpected error occurred during reservation:", 500)
 
 
-@library_manage_blueprint.route('/book_reserved_external/<int:book_id>', methods=['POST'])
-def book_reserved_external(book_id):
-    """Endpoint to reserve a book in external library"""
+@library_manage_blueprint.route('/book_reserved_external', methods=['POST'])
+def book_reserved_external():
+    """Endpoint to reserve a book in external library
+    """
     try:
-        result = reserve_book_external(book_id, request.json, request.headers)
+        result = reserve_book_external(request.json, request.headers)
         return jsonify(result), 200
-    except ValidationError as err:
-        return error_response(u"Validation error", 400, err.messages)
+    except ValidationError as e:
+        return error_response(u"Validation error", 400, unicode(e))
+    except Unauthorized as e:
+        return error_response('Unauthorized', 400, e.message)
+    except BadRequest as e:
+        return error_response('Bad Request', 400, unicode(e))
     except Exception as e:
         current_app.logger.error(u'External reservation exception in /book_reserved_external \
-                                 for book %s: %s', book_id, unicode(e))
+                                 for request %s: %s', request.json, unicode(e))
         return error_response(u"An error occurred during external reservation", 500)

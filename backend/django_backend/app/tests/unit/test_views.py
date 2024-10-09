@@ -133,7 +133,7 @@ class ReturnBookViewTestCase(APITestCase):
         Test that user can successfully return a reserved book
         """
         self.client.force_authenticate(user=self.user1)
-        url = reverse('return_book', args=[self.book.book_id])
+        url = reverse('return_book')
         data = {'reservation_id': self.reservation.reservation_id}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -147,7 +147,7 @@ class ReturnBookViewTestCase(APITestCase):
         """
         Test that unauthenticated user cannot return a book
         """
-        url = reverse('return_book', args=[self.book.book_id])
+        url = reverse('return_book')
         data = {'reservation_id': self.reservation.reservation_id}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -158,7 +158,7 @@ class ReturnBookViewTestCase(APITestCase):
         """
         self.client.force_authenticate(user=self.user1)
         non_existent_book_id = 999
-        url = reverse('return_book', args=[non_existent_book_id])
+        url = reverse('return_book')
         data = {'reservation_id': non_existent_book_id}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -168,7 +168,7 @@ class ReturnBookViewTestCase(APITestCase):
         Test that a user cannot return a book they did not reserve
         """
         self.client.force_authenticate(user=self.user2)
-        url = reverse('return_book', args=[self.book.book_id])
+        url = reverse('return_book')
         data = {'reservation_id': self.reservation.reservation_id}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -182,7 +182,7 @@ class ReturnBookViewTestCase(APITestCase):
         Test that book that has already been returned cannot be returned again
         """
         self.client.force_authenticate(user=self.user1)
-        url = reverse('return_book', args=[self.book.book_id])
+        url = reverse('return_book')
         data = {'reservation_id': self.reservation.reservation_id}
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -377,7 +377,7 @@ class ReservationAPITest(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
-        url = reverse('reserve_book', args=[self.book_available.book_id])
+        url = reverse('reserve_book')
         data = {
             'book_id': self.book_available.book_id,
         }
@@ -401,7 +401,7 @@ class ReservationAPITest(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
-        url = reverse('reserve_book', args=[self.book_not_available.book_id])
+        url = reverse('reserve_book')
 
         data = {
             'book_id': self.book_not_available.book_id,
@@ -437,7 +437,7 @@ class ReservationAPITest(APITestCase):
         """
         self.client.force_authenticate(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
-        url = reverse('reserve_book', args=[self.book_not_available.book_id])
+        url = reverse('reserve_book')
 
         data = {
             'book_id': self.book_not_available.book_id,
@@ -457,7 +457,7 @@ class ReservationAPITest(APITestCase):
         """
         Test that an unauthenticated user cannot reserve a book
         """
-        url = reverse('reserve_book', args=[self.book_available.book_id])
+        url = reverse('reserve_book')
         data = {
             'book_id': self.book_available.book_id,
         }
@@ -472,7 +472,7 @@ class ReservationAPITest(APITestCase):
         self.client.force_authenticate(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer testtoken')
         non_existent_book_id = 999
-        url = reverse('reserve_book', args=[non_existent_book_id])
+        url = reverse('reserve_book')
         data = {
             'book_id': non_existent_book_id,
         }

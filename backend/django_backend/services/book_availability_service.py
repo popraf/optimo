@@ -85,7 +85,7 @@ class AvailabilityService:
         Returns:
         - bool: True if the reservation is successful, False otherwise.
         """
-        request_flask_api_url = f"{self.base_flask_api_url}/book_reserved_external/{pk}"
+        request_flask_api_url = f"{self.base_flask_api_url}/book_reserved_external"
         try:
             if not token:
                 # Handle missing Authorization header
