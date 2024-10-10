@@ -41,7 +41,8 @@ The system consists of the following components:
 * Redis: Serves as a message broker for asynchronous tasks handled by Celery.
 * Celery Workers: Execute background tasks such as sending notifications.
 * Docker Compose: Orchestrates all services, ensuring seamless interaction and deployment.
-![Optimo Architecture](https://github.com/user-attachments/assets/c6827f01-83f6-4809-92b0-649f8068eb10)
+![Optimo Architecture](https://github.com/user-attachments/assets/d884c927-2920-4849-a68a-29da37b6881a)
+
 
 ### Installation
 1. Clone the Repository
