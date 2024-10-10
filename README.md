@@ -57,7 +57,9 @@ The system consists of the following components:
 
     Create a `.env` file in the project's root directory based on the provided `.env.example`
 
-3. Configuration
+3. Make sure `MYSQL_USER` and `MYSQL_DATABASE` env variables match the script `init.sql`
+
+4. Configuration
 
     The application uses Docker Compose to manage multiple services. The primary configuration file is docker-compose.yml. Here's a brief overview of the services:
 
@@ -70,7 +72,7 @@ The system consists of the following components:
     
     Ensure that all services are correctly defined in the docker-compose.yml file and that environment variables are appropriately set in the .env file.
 
-4. Build and Start Services
+5. Build and Start Services
     
     * Using Docker Compose:
 
