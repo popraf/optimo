@@ -2,7 +2,7 @@
 Python Developer Recruitment Task
 
 This is an application designed to streamline book reservations and manage library resources efficiently. 
-This system leverages both Django and Flask frameworks, orchestrated through Docker Compose, to provide a robust and scalable solution for library management.
+This system leverages both Django (python 3) and Flask (python 2) frameworks, orchestrated through Docker Compose, to provide a robust and scalable solution for library management.
 The aplication also features Django Celery Beat and Redis for notification sending via email, and Flask to check external libraries.
 
 ### Basic Business Logic
